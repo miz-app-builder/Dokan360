@@ -1,16 +1,22 @@
-export default function Navbar({ activePage, setPage, user, onLogout }) {
-  const isAdmin  = user?.role === "admin";
-  const isSeller = user?.role === "seller" || isAdmin;
+export default function Navbar({ activePage, setPage, user, perms = {}, onLogout }) {
+  const isAdmin = user?.role === "admin";
+
+  // Admin always sees everything. Others use permission table.
+  const canView = (module) => {
+    if (isAdmin) return true;
+    if (perms[module]) return !!perms[module].can_view;
+    return false;
+  };
 
   const links = [
-    { key: "pos",        label: "🛒 POS",          show: isSeller },
-    { key: "products",   label: "📦 Products",      show: isSeller },
-    { key: "categories", label: "🗂️ Categories",   show: isSeller },
-    { key: "customers",  label: "👥 Customers",     show: isSeller },
-    { key: "inventory",  label: "🏭 Inventory",     show: isSeller },
-    { key: "reports",    label: "📊 Reports",       show: isAdmin  },
-    { key: "admin",      label: "⚙️ Admin",         show: isAdmin  },
-  ].filter(l => l.show);
+    { key: "pos",        label: "🛒 POS" },
+    { key: "products",   label: "📦 Products" },
+    { key: "categories", label: "🗂️ Categories" },
+    { key: "customers",  label: "👥 Customers" },
+    { key: "inventory",  label: "🏭 Inventory" },
+    { key: "reports",    label: "📊 Reports" },
+    { key: "admin",      label: "⚙️ Admin",  adminOnly: true },
+  ].filter(l => l.adminOnly ? isAdmin : canView(l.key));
 
   const roleLabel = { admin: "👑 Admin", seller: "🛒 Seller", viewer: "👁️ Viewer" };
 
@@ -50,15 +56,11 @@ export default function Navbar({ activePage, setPage, user, onLogout }) {
         </button>
       ))}
 
-      {/* Spacer */}
       <div style={{ flex: 1 }} />
 
-      {/* User Info + Logout */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, paddingLeft: 8 }}>
-        <span style={{
-          color: "rgba(255,255,255,0.85)", fontSize: 13, whiteSpace: "nowrap",
-        }}>
-          {user?.username} · {roleLabel[user?.role] || user?.role}
+        <span style={{ color: "rgba(255,255,255,0.85)", fontSize: 13, whiteSpace: "nowrap" }}>
+          {user?.name || user?.username} · {roleLabel[user?.role] || user?.role}
         </span>
         <button
           onClick={onLogout}

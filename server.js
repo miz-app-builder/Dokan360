@@ -826,6 +826,22 @@ app.delete("/users/:id", adminOnly, async (req, res) => {
    🔐 ROLE PERMISSIONS API — Admin only
 ========================= */
 
+// GET my permissions (current user's role) — all authenticated users
+app.get("/permissions/my", async (req, res) => {
+  const role = req.user?.role;
+  const { data, error } = await supabase
+    .from("role_permissions")
+    .select("module, can_view, can_add, can_edit, can_delete")
+    .eq("role", role);
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  // Convert array → { module: { can_view, can_add, ... } }
+  const map = {};
+  (data || []).forEach(p => { map[p.module] = p; });
+  res.json(map);
+});
+
 // GET all permissions (grouped by role)
 app.get("/permissions", adminOnly, async (req, res) => {
   const { data, error } = await supabase

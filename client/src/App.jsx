@@ -19,6 +19,7 @@ export default function App() {
 
   // ── App state ───────────────────────────────────────────────────
   const [page, setPage] = useState("pos");
+  const [perms, setPerms] = useState({});
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [customers, setCustomers] = useState([]);
@@ -43,6 +44,7 @@ export default function App() {
     setUser(null);
     setPage("pos");
     setCart([]);
+    setPerms({});
   };
 
   // ── Data loaders ─────────────────────────────────────────────────
@@ -56,6 +58,14 @@ export default function App() {
     loadProducts();
     API.get("/categories").then(r => setCategories(r.data)).catch(console.error);
     API.get("/customers").then(r => setCustomers(r.data)).catch(console.error);
+    API.get("/permissions/my").then(r => {
+      setPerms(r.data);
+      // Redirect viewer to first accessible page
+      if (user.role === "viewer") {
+        const first = ["reports","products","customers","inventory"].find(m => r.data[m]?.can_view);
+        if (first) setPage(first);
+      }
+    }).catch(console.error);
   }, [user, loadProducts]);
 
   useEffect(() => {
@@ -164,6 +174,7 @@ export default function App() {
         activePage={page}
         setPage={(p) => { setPage(p); setLedgerCustomer(null); }}
         user={user}
+        perms={perms}
         onLogout={handleLogout}
       />
 
