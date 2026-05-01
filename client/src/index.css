@@ -248,19 +248,42 @@ html, body {
 }
 
 /* ===== RESPONSIVE ===== */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .sidebar { display: none !important; }
   .bottom-nav { display: flex !important; }
   .page-content {
     height: calc(100vh - var(--bottom-nav-h));
-    padding-bottom: 0;
+    padding-bottom: var(--bottom-nav-h);
   }
   .page-wrapper { padding: 16px; }
   .app-layout { flex-direction: column; }
   .hide-mobile { display: none !important; }
+
+  /* POS layout: stack vertically on mobile */
+  .pos-layout {
+    flex-direction: column !important;
+    overflow-y: auto !important;
+    height: auto !important;
+  }
+  .pos-products {
+    border-right: none !important;
+    border-bottom: 1px solid rgba(255,255,255,0.6) !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow-y: visible !important;
+  }
+  .pos-cart {
+    width: 100% !important;
+    flex-shrink: unset !important;
+    max-height: none !important;
+    border-top: 2px solid rgba(99,102,241,0.15) !important;
+  }
+  .product-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important;
+  }
 }
 
-@media (min-width: 769px) {
+@media (min-width: 1025px) {
   .bottom-nav { display: none !important; }
   .hide-desktop { display: none !important; }
 }

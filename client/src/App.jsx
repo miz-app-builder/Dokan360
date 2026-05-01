@@ -206,10 +206,10 @@ function AppInner({ onUserChange }) {
 
         {/* ===== POS PAGE ===== */}
         {page === "pos" && (
-          <div style={{ display: "flex", flex: 1, overflow: "hidden", height: "100%" }}>
+          <div className="pos-layout" style={{ display: "flex", flex: 1, overflow: "hidden", height: "100%" }}>
 
             {/* LEFT: Products */}
-            <div style={{
+            <div className="pos-products" style={{
               flex: 1, padding: 20, overflowY: "auto",
               borderRight: "1px solid rgba(255,255,255,0.6)",
             }}>
@@ -282,7 +282,7 @@ function AppInner({ onUserChange }) {
               </div>
 
               {/* Product Grid */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 10 }}>
+              <div className="product-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 10 }}>
                 {filteredProducts.map(p => {
                   const inCart     = getCartQty(p.id);
                   const outOfStock = isOutOfStock(p);
@@ -342,7 +342,7 @@ function AppInner({ onUserChange }) {
             </div>
 
             {/* RIGHT: Cart */}
-            <div style={{
+            <div className="pos-cart" style={{
               width: 340, flexShrink: 0,
               display: "flex", flexDirection: "column",
               background: "rgba(255,255,255,0.55)",
