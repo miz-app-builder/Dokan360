@@ -297,7 +297,19 @@ function UserList({ users, currentUser, onOpen, onNew, onDelete }) {
 /* options: [{ value, label }]  — generic custom dropdown (no native OS picker) */
 function CustomSelect({ label, value, onChange, options, placeholder = "— বেছে নিন —", wrapStyle = {} }) {
   const [open, setOpen] = useState(false);
+  const [openUpward, setOpenUpward] = useState(false);
+  const btnRef = useRef(null);
   const selected = options.find(o => String(o.value) === String(value));
+
+  const handleOpen = () => {
+    if (!open && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      setOpenUpward(spaceBelow < 240);
+    }
+    setOpen(o => !o);
+  };
+
   return (
     <div style={{ position: "relative", ...wrapStyle }}>
       {label && (
@@ -306,8 +318,9 @@ function CustomSelect({ label, value, onChange, options, placeholder = "— ব�
         </label>
       )}
       <button
+        ref={btnRef}
         type="button"
-        onClick={() => setOpen(o => !o)}
+        onClick={handleOpen}
         style={{
           width: "100%", padding: "8px 12px", borderRadius: 6, fontSize: 13,
           border: "1px solid #e5e7eb", background: "#fff", cursor: "pointer",
@@ -319,15 +332,21 @@ function CustomSelect({ label, value, onChange, options, placeholder = "— ব�
         <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {selected ? selected.label : placeholder}
         </span>
-        <span style={{ fontSize: 10, color: "#9ca3af", flexShrink: 0, marginLeft: 6 }}>{open ? "▲" : "▼"}</span>
+        <span style={{ fontSize: 10, color: "#9ca3af", flexShrink: 0, marginLeft: 6 }}>
+          {open ? (openUpward ? "▼" : "▲") : "▼"}
+        </span>
       </button>
       {open && (
         <>
           <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 49 }} />
           <div style={{
-            position: "absolute", top: "100%", left: 0, right: 0, zIndex: 50,
+            position: "absolute",
+            ...(openUpward
+              ? { bottom: "100%", marginBottom: 2 }
+              : { top: "100%", marginTop: 2 }),
+            left: 0, right: 0, zIndex: 50,
             background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8,
-            boxShadow: "0 4px 16px rgba(0,0,0,0.12)", marginTop: 2,
+            boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
             maxHeight: 220, overflowY: "auto",
           }}>
             {options.map(o => (
