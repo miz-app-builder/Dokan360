@@ -578,24 +578,30 @@ function UserProfile({ user, isNew, currentUser, onSaved, onBack, showMsg, outle
           {/* Account Settings */}
           <div style={card}>
             <label style={sectionLabel}>🔐 Account</label>
-            {!isNew && user?.id && (
-              <div style={{ marginBottom: 10, display: "flex", flexDirection: "column", gap: 6 }}>
-                <div style={{ padding: "7px 10px", background: "#f3f4f6", borderRadius: 7, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            {/* User ID + Username + Password grouped */}
+            <div style={{ marginBottom: 10, border: "1px solid #e5e7eb", borderRadius: 9, overflow: "hidden" }}>
+              {!isNew && user?.id && (<>
+                <div style={{ padding: "8px 12px", background: "#f9fafb", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #e5e7eb" }}>
                   <span style={{ fontSize: 11, fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.4px" }}>User ID</span>
                   <span style={{ fontSize: 13, fontWeight: 800, color: "#4f46e5", fontFamily: "monospace" }}>#{user.id}</span>
                 </div>
-                <div style={{ padding: "7px 10px", background: "#f3f4f6", borderRadius: 7, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ padding: "8px 12px", background: "#f9fafb", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #e5e7eb" }}>
                   <span style={{ fontSize: 11, fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.4px" }}>Username</span>
                   <span style={{ fontSize: 13, fontWeight: 800, color: "#1e1b4b", fontFamily: "monospace" }}>@{user.username}</span>
                 </div>
+              </>)}
+              {isNew && (
+                <div style={{ padding: "8px 12px", borderBottom: "1px solid #e5e7eb" }}>
+                  <label style={lbl}>Username *</label>
+                  <input value={form.username} onChange={e => set("username", e.target.value)} style={{ ...inp, marginTop: 4 }} required />
+                </div>
+              )}
+              <div style={{ padding: "8px 12px" }}>
+                <label style={lbl}>{isNew ? "Password *" : "নতুন Password (ঐচ্ছিক)"}</label>
+                <input type="password" value={form.password} onChange={e => set("password", e.target.value)}
+                  placeholder={isNew ? "" : "পরিবর্তন করতে লিখুন"} style={{ ...inp, marginTop: 4 }} />
               </div>
-            )}
-            {isNew && (
-              <div style={{ marginBottom: 10 }}>
-                <label style={lbl}>Username *</label>
-                <input value={form.username} onChange={e => set("username", e.target.value)} style={inp} required />
-              </div>
-            )}
+            </div>
             <CustomSelect
               label="Role *"
               value={form.role}
@@ -603,11 +609,6 @@ function UserProfile({ user, isNew, currentUser, onSaved, onBack, showMsg, outle
               options={ROLES.map(r => ({ value: r, label: ROLE_LABEL[r] }))}
               wrapStyle={{ marginBottom: 10 }}
             />
-            <div style={{ marginBottom: 10 }}>
-              <label style={lbl}>{isNew ? "Password *" : "নতুন Password (ঐচ্ছিক)"}</label>
-              <input type="password" value={form.password} onChange={e => set("password", e.target.value)}
-                placeholder={isNew ? "" : "পরিবর্তন করতে লিখুন"} style={inp} />
-            </div>
             {outlets.length > 0 && (
               <OutletPicker
                 outlets={outlets}
