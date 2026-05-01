@@ -1,6 +1,7 @@
 export default function Navbar({ activePage, setPage }) {
   const links = [
     { key: "pos",        label: "🛒 POS" },
+    { key: "products",   label: "📦 Products" },
     { key: "categories", label: "🗂️ Categories" },
   ];
 

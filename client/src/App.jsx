@@ -2,23 +2,29 @@ import { useEffect, useState, useRef } from "react";
 import { API } from "./api";
 import Navbar from "./components/Navbar";
 import Categories from "./pages/Categories";
+import Products from "./pages/Products";
 
 export default function App() {
   const [page, setPage] = useState("pos");
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [cart, setCart] = useState([]);
   const [search, setSearch] = useState("");
+  const [filterCat, setFilterCat] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [paidAmount, setPaidAmount] = useState("");
   const barcodeRef = useRef(null);
 
   // =========================
-  // LOAD PRODUCTS & CUSTOMERS
+  // LOAD PRODUCTS, CATEGORIES & CUSTOMERS
   // =========================
+  const loadProducts = () => API.get("/products").then(r => setProducts(r.data)).catch(console.error);
+
   useEffect(() => {
-    API.get("/products").then(res => setProducts(res.data)).catch(console.error);
-    API.get("/customers").then(res => setCustomers(res.data)).catch(console.error);
+    loadProducts();
+    API.get("/categories").then(r => setCategories(r.data)).catch(console.error);
+    API.get("/customers").then(r => setCustomers(r.data)).catch(console.error);
   }, []);
 
   useEffect(() => {
@@ -26,14 +32,13 @@ export default function App() {
   }, [page]);
 
   // =========================
-  // FILTERED PRODUCTS
+  // FILTERED PRODUCTS (search + category)
   // =========================
   const filteredProducts = products.filter(p => {
     const q = search.toLowerCase();
-    return (
-      p.name.toLowerCase().includes(q) ||
-      (p.barcode && p.barcode.includes(q))
-    );
+    const matchSearch = p.name.toLowerCase().includes(q) || (p.barcode && p.barcode.includes(q));
+    const matchCat = filterCat ? p.category_id === parseInt(filterCat) : true;
+    return matchSearch && matchCat;
   });
 
   // =========================
@@ -122,7 +127,7 @@ export default function App() {
         setPaidAmount("");
         setSelectedCustomer(null);
         setSearch("");
-        API.get("/products").then(r => setProducts(r.data));
+        loadProducts();
         barcodeRef.current?.focus();
       } else {
         alert("❌ Error: " + res.data.error);
@@ -137,6 +142,9 @@ export default function App() {
     <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: "#f5f6fa" }}>
 
       <Navbar activePage={page} setPage={setPage} />
+
+      {/* ===== PRODUCTS PAGE ===== */}
+      {page === "products" && <Products />}
 
       {/* ===== CATEGORIES PAGE ===== */}
       {page === "categories" && <Categories />}
@@ -163,9 +171,24 @@ export default function App() {
                 borderRadius: 8,
                 outline: "none",
                 boxSizing: "border-box",
-                marginBottom: 12,
+                marginBottom: 10,
               }}
             />
+
+            {/* Category Filter */}
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+              <button
+                onClick={() => setFilterCat("")}
+                style={filterCat === "" ? activeCatBtn : catBtn}
+              >সব</button>
+              {categories.map(c => (
+                <button
+                  key={c.id}
+                  onClick={() => setFilterCat(String(c.id))}
+                  style={filterCat === String(c.id) ? activeCatBtn : catBtn}
+                >{c.name}</button>
+              ))}
+            </div>
 
             <h2 style={{ margin: "0 0 12px", color: "#1e1b4b" }}>
               📦 Products ({filteredProducts.length})
@@ -362,3 +385,12 @@ const btnStyle = (bg) => ({
   borderRadius: 6, padding: "4px 10px",
   cursor: "pointer", fontWeight: "bold", fontSize: 14,
 });
+
+const catBtn = {
+  padding: "5px 12px", background: "#f3f4f6", color: "#374151",
+  border: "1px solid #e5e7eb", borderRadius: 20, fontSize: 12, cursor: "pointer",
+};
+const activeCatBtn = {
+  ...catBtn, background: "#4f46e5", color: "#fff",
+  border: "1px solid #4f46e5", fontWeight: "bold",
+};

@@ -48,15 +48,45 @@ app.get("/products/search", async (req, res) => {
 
 // ADD product
 app.post("/products", async (req, res) => {
-  const { name, sell_price, buy_price, stock, barcode } = req.body;
+  const { name, sell_price, buy_price, stock, barcode, category_id } = req.body;
+  if (!name) return res.status(400).json({ error: "নাম দেওয়া আবশ্যক।" });
 
   const { data, error } = await supabase
     .from("products")
-    .insert([{ name, sell_price, buy_price, stock, barcode }])
+    .insert([{ name, sell_price, buy_price, stock: stock || 0, barcode, category_id: category_id || null }])
     .select();
 
   if (error) return res.status(500).json({ error: error.message });
   res.json(data);
+});
+
+// EDIT product
+app.put("/products/:id", async (req, res) => {
+  const { id } = req.params;
+  const { name, sell_price, buy_price, stock, barcode, category_id } = req.body;
+
+  const { data, error } = await supabase
+    .from("products")
+    .update({ name, sell_price, buy_price, stock, barcode, category_id: category_id || null })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// DELETE product
+app.delete("/products/:id", async (req, res) => {
+  const { id } = req.params;
+
+  const { error } = await supabase
+    .from("products")
+    .delete()
+    .eq("id", id);
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ success: true });
 });
 
 /* =========================
