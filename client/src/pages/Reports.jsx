@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { API } from "../api";
-import { useSettings } from "../context/SettingsContext";
+import { useSettings, useT } from "../context/SettingsContext";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
@@ -11,16 +11,8 @@ const fmt      = (n) => Number(n || 0).toFixed(0);
 const fmtDate  = (d) => d ? new Date(d).toLocaleString("bn-BD") : "—";
 const fmtShort = (d) => d ? new Date(d).toLocaleDateString("en-GB") : "";
 
-const TABS = [
-  { key: "daily",    label: "📅 দৈনিক বিক্রয়" },
-  { key: "profit",   label: "💰 মুনাফা" },
-  { key: "products", label: "📦 পণ্যভিত্তিক" },
-  { key: "user",     label: "👤 User ভিত্তিক" },
-  { key: "outlet",   label: "🏬 Outlet ভিত্তিক" },
-  { key: "due",      label: "👥 Customer বাকি" },
-];
-
 export default function Reports() {
+  const t = useT();
   const { settings } = useSettings();
   const cur = settings?.currency_symbol || "৳";
 
@@ -398,10 +390,17 @@ export default function Reports() {
 
       {/* Tabs */}
       <div style={{ display: "flex", gap: 6, marginBottom: 24, flexWrap: "wrap" }}>
-        {TABS.filter(t => t.key !== "outlet" || outlets.length > 0).map(t => {
-          const active = activeTab === t.key;
+        {[
+          { key: "daily",    label: t("reports_tab_daily") },
+          { key: "profit",   label: t("reports_tab_profit") },
+          { key: "products", label: t("reports_tab_products") },
+          { key: "user",     label: t("reports_tab_user") },
+          { key: "outlet",   label: t("reports_tab_outlet") },
+          { key: "due",      label: t("reports_tab_due") },
+        ].filter(tab => tab.key !== "outlet" || outlets.length > 0).map(tab => {
+          const active = activeTab === tab.key;
           return (
-            <button key={t.key} onClick={() => setActiveTab(t.key)} style={{
+            <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
               padding: "9px 18px",
               background: active ? "linear-gradient(135deg, #6366f1, #8b5cf6)" : "rgba(255,255,255,0.65)",
               color: active ? "#fff" : "#374151",
@@ -410,7 +409,7 @@ export default function Reports() {
               cursor: "pointer", fontFamily: "inherit",
               boxShadow: active ? "0 4px 12px rgba(99,102,241,0.35)" : "0 1px 4px rgba(0,0,0,0.06)",
               backdropFilter: "blur(10px)",
-            }}>{t.label}</button>
+            }}>{tab.label}</button>
           );
         })}
       </div>
@@ -745,7 +744,8 @@ function Table({ cols, rows }) {
 }
 
 function Loader() {
-  return <div style={{ textAlign:"center", padding:48 }}><div style={{ fontSize:28, marginBottom:8 }}>⏳</div><p style={{ color:"#9ca3af" }}>লোড হচ্ছে...</p></div>;
+  const t = useT();
+  return <div style={{ textAlign:"center", padding:48 }}><div style={{ fontSize:28, marginBottom:8 }}>⏳</div><p style={{ color:"#9ca3af" }}>{t("reports_loading")}</p></div>;
 }
 
 function EmptyMsg({ text = "এই সময়ে কোনো ডেটা নেই।" }) {

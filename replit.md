@@ -83,3 +83,23 @@ Browser → Vite Dev Server (port 5000)
 | `jspdf` + `jspdf-autotable` | PDF export in Reports |
 | `xlsx` | Excel export in Reports |
 | `vite` + `@vitejs/plugin-react` | Build & dev server |
+
+## Language / i18n System
+
+A full language-switching system is implemented with no third-party library.
+
+### How it works
+1. **`client/src/i18n.js`** — Translation dictionary with `bn` (Bengali) and `en` (English) keys for every UI string across all pages. Exports `createT(lang)` which returns a `t(key)` function.
+2. **`client/src/context/SettingsContext.jsx`** — `useT()` hook exported alongside `useSettings()`. Reads `settings.language` ("bn" or "en", default "bn") and returns `createT(lang)`.
+3. **All components** use `import { useT } from "../context/SettingsContext"` and call `const t = useT()` at the top. All user-visible strings are accessed via `t("key")`.
+
+### Pattern used
+```js
+const t = useT();
+// In JSX:
+<button>{t("save")}</button>
+<input placeholder={t("products_search_ph")} />
+```
+
+### Changing language
+Go to Settings → Display tab → Language dropdown → select বাংলা or English. The change is stored in Supabase and takes effect immediately across the entire app.

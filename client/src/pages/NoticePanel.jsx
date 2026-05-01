@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { API } from "../api";
+import { useT } from "../context/SettingsContext";
 
 const ACCENT  = "#6366f1";
 const ACCENT2 = "#8b5cf6";
@@ -17,6 +18,7 @@ const diffHours = (from, to) => {
 };
 
 export default function NoticePanel() {
+  const t = useT();
   const [notices,   setNotices]   = useState([]);
   const [loading,   setLoading]   = useState(true);
   const [saving,    setSaving]    = useState(false);
@@ -24,9 +26,9 @@ export default function NoticePanel() {
   const [success,   setSuccess]   = useState("");
 
   const [text,          setText]          = useState("");
-  const [publishType,   setPublishType]   = useState("now");   // "now" | "scheduled"
+  const [publishType,   setPublishType]   = useState("now");
   const [scheduleAt,    setScheduleAt]    = useState("");
-  const [durationHours, setDurationHours] = useState("");       // "" = no expiry
+  const [durationHours, setDurationHours] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -34,7 +36,7 @@ export default function NoticePanel() {
       const r = await API.get("/notices");
       setNotices(r.data.notices || []);
     } catch (e) {
-      setError("লোড হয়নি: " + (e.response?.data?.error || e.message));
+      setError(t("notices_load_error") + ": " + (e.response?.data?.error || e.message));
     } finally { setLoading(false); }
   };
 
@@ -47,7 +49,7 @@ export default function NoticePanel() {
 
   const handleCreate = async (e) => {
     e.preventDefault();
-    if (!text.trim()) return flash("Notice text লিখুন।", true);
+    if (!text.trim()) return flash(t("notices_text_required"), true);
     setSaving(true);
     try {
       await API.post("/notices", {
@@ -55,11 +57,11 @@ export default function NoticePanel() {
         publish_at:     publishType === "scheduled" ? scheduleAt || null : null,
         duration_hours: durationHours ? parseFloat(durationHours) : null,
       });
-      flash("✅ Notice যোগ হয়েছে!");
+      flash(`✅ ${t("notices_added")}`);
       setText(""); setScheduleAt(""); setDurationHours(""); setPublishType("now");
       load();
     } catch (e) {
-      flash(e.response?.data?.error || "Error হয়েছে।", true);
+      flash(e.response?.data?.error || t("error"), true);
     } finally { setSaving(false); }
   };
 
@@ -67,16 +69,16 @@ export default function NoticePanel() {
     try {
       await API.put(`/notices/${n.id}`, { is_active: !n.is_active });
       load();
-    } catch (e) { flash(e.response?.data?.error || "Error", true); }
+    } catch (e) { flash(e.response?.data?.error || t("error"), true); }
   };
 
   const deleteNotice = async (id) => {
-    if (!window.confirm("এই notice মুছে ফেলবেন?")) return;
+    if (!window.confirm(t("notices_confirm_delete"))) return;
     try {
       await API.delete(`/notices/${id}`);
-      flash("মুছে ফেলা হয়েছে।");
+      flash(t("notices_deleted"));
       load();
-    } catch (e) { flash(e.response?.data?.error || "Error", true); }
+    } catch (e) { flash(e.response?.data?.error || t("error"), true); }
   };
 
   const now = new Date();
@@ -130,10 +132,10 @@ export default function NoticePanel() {
                       (!n.expires_at || new Date(n.expires_at) > now);
     const isPending = n.is_active && new Date(n.publish_at) > now;
     const isExpired = n.expires_at && new Date(n.expires_at) <= now;
-    const badge = isActive  ? { label: "চলছে",    color: "#16a34a", bg: "#dcfce7" }
-                : isPending ? { label: "নির্ধারিত", color: ACCENT,   bg: `${ACCENT}15` }
-                : isExpired ? { label: "মেয়াদ শেষ", color: "#9ca3af", bg: "#f3f4f6" }
-                :             { label: "বন্ধ",     color: "#ef4444", bg: "#fee2e2" };
+    const badge = isActive  ? { label: t("notices_status_active"),   color: "#16a34a", bg: "#dcfce7" }
+                : isPending ? { label: t("notices_status_pending"),  color: ACCENT,   bg: `${ACCENT}15` }
+                : isExpired ? { label: t("notices_status_expired"),  color: "#9ca3af", bg: "#f3f4f6" }
+                :             { label: t("notices_status_off"),      color: "#ef4444", bg: "#fee2e2" };
     return (
       <div style={{
         display: "flex", gap: 10, alignItems: "flex-start",
@@ -145,8 +147,8 @@ export default function NoticePanel() {
           </div>
           <div style={{ fontSize: 11, color: "#6b7280", display: "flex", flexWrap: "wrap", gap: "4px 12px" }}>
             <span>📅 {fmt(n.publish_at)}</span>
-            {n.expires_at && <span>⏱️ মেয়াদ: {fmt(n.expires_at)} ({diffHours(n.publish_at, n.expires_at)} ঘণ্টা)</span>}
-            {!n.expires_at && <span>♾️ সীমাহীন</span>}
+            {n.expires_at && <span>⏱️ {t("notices_expires")}: {fmt(n.expires_at)} ({diffHours(n.publish_at, n.expires_at)} {t("notices_hours")})</span>}
+            {!n.expires_at && <span>♾️ {t("notices_unlimited")}</span>}
             {n.created_by && <span>✍️ {n.created_by}</span>}
           </div>
         </div>
@@ -157,7 +159,7 @@ export default function NoticePanel() {
           }}>{badge.label}</span>
           <button
             onClick={() => toggleActive(n)}
-            title={n.is_active ? "বন্ধ করুন" : "চালু করুন"}
+            title={n.is_active ? t("notices_toggle_off") : t("notices_toggle_on")}
             style={{
               background: n.is_active ? "#fee2e2" : "#dcfce7",
               color: n.is_active ? "#ef4444" : "#16a34a",
@@ -165,7 +167,7 @@ export default function NoticePanel() {
               padding: "5px 10px", cursor: "pointer", fontFamily: "inherit",
               fontSize: 12, fontWeight: 700,
             }}>
-            {n.is_active ? "বন্ধ" : "চালু"}
+            {n.is_active ? t("notices_toggle_off") : t("notices_toggle_on")}
           </button>
           <button
             onClick={() => deleteNotice(n.id)}
@@ -184,39 +186,38 @@ export default function NoticePanel() {
     <div className="page-wrapper">
       <div style={{ maxWidth: 820, margin: "0 auto" }}>
         <h1 style={{ fontSize: 22, fontWeight: 900, color: "#1e1b4b", marginBottom: 4 }}>
-          📢 Notice Panel
+          📢 {t("notices_title")}
         </h1>
         <p style={{ color: "#6b7280", fontSize: 13, marginBottom: 24 }}>
-          Topbar এ notice দিন — এখনই অথবা নির্দিষ্ট সময়ে।
+          {t("notices_subtitle")}
         </p>
 
         {error   && <div style={{ background: "#fee2e2", color: "#ef4444", padding: "10px 14px", borderRadius: 10, marginBottom: 14, fontWeight: 600 }}>{error}</div>}
         {success && <div style={{ background: "#dcfce7", color: "#16a34a", padding: "10px 14px", borderRadius: 10, marginBottom: 14, fontWeight: 600 }}>{success}</div>}
 
-        {/* ── Create Notice ── */}
+        {/* Create Notice */}
         <div style={cardStyle}>
           <h2 style={{ fontSize: 15, fontWeight: 800, color: "#1e1b4b", marginBottom: 16 }}>
-            ➕ নতুন Notice
+            ➕ {t("notices_new_heading")}
           </h2>
           <form onSubmit={handleCreate}>
             <div style={{ marginBottom: 14 }}>
-              <label style={labelStyle}>Notice লেখা *</label>
+              <label style={labelStyle}>{t("notices_text_label")} *</label>
               <textarea
                 value={text}
                 onChange={e => setText(e.target.value)}
-                placeholder="এখানে notice লিখুন..."
+                placeholder={t("notices_text_ph")}
                 rows={3}
                 style={{ ...inputStyle, resize: "vertical" }}
               />
             </div>
 
-            {/* Publish type toggle */}
             <div style={{ marginBottom: 14 }}>
-              <label style={labelStyle}>Publish ধরন</label>
+              <label style={labelStyle}>{t("notices_publish_type")}</label>
               <div style={{ display: "flex", gap: 8 }}>
                 {[
-                  { val: "now",       label: "⚡ এখনই Publish" },
-                  { val: "scheduled", label: "📅 সময় নির্ধারণ" },
+                  { val: "now",       labelKey: "notices_now" },
+                  { val: "scheduled", labelKey: "notices_scheduled" },
                 ].map(opt => (
                   <button
                     key={opt.val}
@@ -232,14 +233,14 @@ export default function NoticePanel() {
                       borderRadius: 10, fontWeight: 700, fontSize: 13,
                       cursor: "pointer", fontFamily: "inherit",
                     }}
-                  >{opt.label}</button>
+                  >{t(opt.labelKey)}</button>
                 ))}
               </div>
             </div>
 
             {publishType === "scheduled" && (
               <div style={{ marginBottom: 14 }}>
-                <label style={labelStyle}>Publish হওয়ার সময় *</label>
+                <label style={labelStyle}>{t("notices_schedule_label")} *</label>
                 <input
                   type="datetime-local"
                   value={scheduleAt}
@@ -250,7 +251,7 @@ export default function NoticePanel() {
             )}
 
             <div style={{ marginBottom: 18 }}>
-              <label style={labelStyle}>কতক্ষণ দেখাবে? (ঘণ্টায়)</label>
+              <label style={labelStyle}>{t("notices_duration_label")}</label>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 {["", "1", "6", "12", "24", "48", "168"].map(h => (
                   <button
@@ -259,55 +260,55 @@ export default function NoticePanel() {
                     onClick={() => setDurationHours(h)}
                     style={{
                       padding: "6px 14px",
-                      background: durationHours === h
-                        ? `${ACCENT}15`
-                        : "rgba(255,255,255,0.6)",
+                      background: durationHours === h ? `${ACCENT}15` : "rgba(255,255,255,0.6)",
                       color: durationHours === h ? ACCENT : "#6b7280",
                       border: `1.5px solid ${durationHours === h ? ACCENT + "40" : "rgba(255,255,255,0.9)"}`,
                       borderRadius: 8, fontWeight: 700, fontSize: 12,
                       cursor: "pointer", fontFamily: "inherit",
                     }}
-                  >{h === "" ? "♾️ সীমাহীন" : h === "168" ? "৭ দিন" : `${h} ঘণ্টা`}</button>
+                  >
+                    {h === "" ? `♾️ ${t("notices_unlimited")}` : h === "168" ? `7 ${t("notices_days")}` : `${h} ${t("notices_hours")}`}
+                  </button>
                 ))}
               </div>
             </div>
 
             <button type="submit" disabled={saving} style={btnStyle(true)}>
-              {saving ? "যোগ হচ্ছে..." : "📢 Notice Publish করুন"}
+              {saving ? t("notices_publishing") : `📢 ${t("notices_publish_btn")}`}
             </button>
           </form>
         </div>
 
-        {/* ── Active Notices ── */}
+        {/* Active Notices */}
         <div style={cardStyle}>
           <h2 style={{ fontSize: 15, fontWeight: 800, color: "#16a34a", marginBottom: 4 }}>
-            ✅ এখন চলছে ({activeNotices.length}টি)
+            ✅ {t("notices_active_heading")} ({activeNotices.length})
           </h2>
-          <p style={{ fontSize: 12, color: "#6b7280", marginBottom: 12 }}>এগুলো এখন Topbar এ দেখাচ্ছে।</p>
-          {loading ? <p style={{ color: "#9ca3af" }}>লোড হচ্ছে...</p> :
-           activeNotices.length === 0 ? <p style={{ color: "#9ca3af", fontSize: 13 }}>কোনো active notice নেই।</p> :
+          <p style={{ fontSize: 12, color: "#6b7280", marginBottom: 12 }}>{t("notices_active_desc")}</p>
+          {loading ? <p style={{ color: "#9ca3af" }}>{t("loading")}</p> :
+           activeNotices.length === 0 ? <p style={{ color: "#9ca3af", fontSize: 13 }}>{t("notices_none_active")}</p> :
            activeNotices.map(n => <NoticeRow key={n.id} n={n} />)}
         </div>
 
-        {/* ── Pending / Scheduled ── */}
+        {/* Pending */}
         {pendingNotices.length > 0 && (
           <div style={cardStyle}>
             <h2 style={{ fontSize: 15, fontWeight: 800, color: ACCENT, marginBottom: 4 }}>
-              ⏳ নির্ধারিত ({pendingNotices.length}টি)
+              ⏳ {t("notices_pending_heading")} ({pendingNotices.length})
             </h2>
-            <p style={{ fontSize: 12, color: "#6b7280", marginBottom: 12 }}>নির্দিষ্ট সময়ে automatically publish হবে।</p>
+            <p style={{ fontSize: 12, color: "#6b7280", marginBottom: 12 }}>{t("notices_pending_desc")}</p>
             {pendingNotices.map(n => <NoticeRow key={n.id} n={n} />)}
           </div>
         )}
 
-        {/* ── History ── */}
+        {/* History */}
         <div style={cardStyle}>
           <h2 style={{ fontSize: 15, fontWeight: 800, color: "#6b7280", marginBottom: 4 }}>
-            🗂️ History ({historyNotices.length}টি)
+            🗂️ {t("notices_history_heading")} ({historyNotices.length})
           </h2>
-          <p style={{ fontSize: 12, color: "#6b7280", marginBottom: 12 }}>মেয়াদ শেষ বা বন্ধ করা notice।</p>
-          {loading ? <p style={{ color: "#9ca3af" }}>লোড হচ্ছে...</p> :
-           historyNotices.length === 0 ? <p style={{ color: "#9ca3af", fontSize: 13 }}>History খালি।</p> :
+          <p style={{ fontSize: 12, color: "#6b7280", marginBottom: 12 }}>{t("notices_history_desc")}</p>
+          {loading ? <p style={{ color: "#9ca3af" }}>{t("loading")}</p> :
+           historyNotices.length === 0 ? <p style={{ color: "#9ca3af", fontSize: 13 }}>{t("notices_history_empty")}</p> :
            historyNotices.map(n => <NoticeRow key={n.id} n={n} />)}
         </div>
       </div>

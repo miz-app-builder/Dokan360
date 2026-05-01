@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { API } from "../api";
+import { useT } from "../context/SettingsContext";
 
 const ACCENT  = "#6366f1";
 const ACCENT2 = "#8b5cf6";
@@ -20,6 +21,7 @@ const lbl = {
 };
 
 export default function Login({ onLogin }) {
+  const t = useT();
   const [form, setForm]           = useState({ username: "", password: "" });
   const [loading, setLoading]     = useState(false);
   const [error, setError]         = useState("");
@@ -37,7 +39,7 @@ export default function Login({ onLogin }) {
       localStorage.setItem("dokan360_user", JSON.stringify(res.data.user));
       onLogin(res.data.user);
     } catch (err) {
-      setError(err.response?.data?.error || "লগইন ব্যর্থ হয়েছে।");
+      setError(err.response?.data?.error || t("login_failed"));
     } finally {
       setLoading(false);
     }
@@ -46,20 +48,20 @@ export default function Login({ onLogin }) {
   const handleSetup = async (e) => {
     e.preventDefault();
     if (setupForm.password !== setupForm.confirm) {
-      setSetupMsg({ type: "error", text: "দুটো password মিলছে না।" });
+      setSetupMsg({ type: "error", text: t("login_pw_mismatch") });
       return;
     }
     setSetupLoading(true);
     try {
       await API.post("/auth/setup", { username: setupForm.username, password: setupForm.password });
-      setSetupMsg({ type: "success", text: "✅ Admin তৈরি হয়েছে! এখন লগইন করুন।" });
+      setSetupMsg({ type: "success", text: t("login_setup_success") });
       setTimeout(() => {
         setShowSetup(false);
         setSetupMsg({ type: "", text: "" });
         setForm({ username: setupForm.username, password: "" });
       }, 2000);
     } catch (err) {
-      setSetupMsg({ type: "error", text: err.response?.data?.error || "সমস্যা হয়েছে।" });
+      setSetupMsg({ type: "error", text: err.response?.data?.error || t("error") });
     } finally {
       setSetupLoading(false);
     }
@@ -72,7 +74,6 @@ export default function Login({ onLogin }) {
       background: "linear-gradient(135deg, #ede9fe 0%, #e0e7ff 40%, #dbeafe 80%, #f0fdf4 100%)",
       padding: 16,
     }}>
-      {/* Decorative blobs */}
       <div style={{ position: "fixed", top: -100, left: -100, width: 400, height: 400, borderRadius: "50%", background: "rgba(139,92,246,0.15)", filter: "blur(80px)", pointerEvents: "none" }} />
       <div style={{ position: "fixed", bottom: -80, right: -80, width: 350, height: 350, borderRadius: "50%", background: "rgba(99,102,241,0.12)", filter: "blur(80px)", pointerEvents: "none" }} />
 
@@ -87,7 +88,6 @@ export default function Login({ onLogin }) {
         boxShadow: "0 20px 60px rgba(99,102,241,0.15), 0 4px 16px rgba(0,0,0,0.06)",
         position: "relative", zIndex: 1,
       }}>
-        {/* Logo */}
         <div style={{ textAlign: "center", marginBottom: 28 }}>
           <div style={{
             width: 64, height: 64, borderRadius: 20, margin: "0 auto 14px",
@@ -97,11 +97,10 @@ export default function Login({ onLogin }) {
           }}>🏪</div>
           <h1 style={{ margin: "0 0 6px", color: "#1e1b4b", fontSize: 26, fontWeight: 900 }}>Dokan360</h1>
           <p style={{ margin: 0, color: "#9ca3af", fontSize: 13 }}>
-            {showSetup ? "প্রথমবার Admin তৈরি করুন" : "আপনার account এ লগইন করুন"}
+            {showSetup ? t("login_subtitle_setup") : t("login_subtitle_login")}
           </p>
         </div>
 
-        {/* LOGIN */}
         {!showSetup && (
           <form onSubmit={handleLogin}>
             {error && (
@@ -112,7 +111,7 @@ export default function Login({ onLogin }) {
               }}>❌ {error}</div>
             )}
             <div style={{ marginBottom: 14 }}>
-              <label style={lbl}>Username</label>
+              <label style={lbl}>{t("login_username")}</label>
               <input type="text" placeholder="admin" value={form.username}
                 onChange={e => setForm({ ...form, username: e.target.value })}
                 style={inp} required autoFocus
@@ -121,7 +120,7 @@ export default function Login({ onLogin }) {
               />
             </div>
             <div style={{ marginBottom: 22 }}>
-              <label style={lbl}>Password</label>
+              <label style={lbl}>{t("login_password")}</label>
               <input type="password" placeholder="••••••••" value={form.password}
                 onChange={e => setForm({ ...form, password: e.target.value })}
                 style={inp} required
@@ -138,19 +137,18 @@ export default function Login({ onLogin }) {
               boxShadow: loading ? "none" : `0 6px 20px ${ACCENT}40`,
               transition: "all 0.15s",
             }}>
-              {loading ? "লগইন হচ্ছে..." : "🔐 লগইন করুন"}
+              {loading ? t("login_logging") : t("login_btn")}
             </button>
             <div style={{ textAlign: "center", marginTop: 18 }}>
               <button type="button" onClick={() => setShowSetup(true)} style={{
                 background: "none", border: "none",
                 color: ACCENT, fontSize: 13, cursor: "pointer",
                 fontFamily: "inherit", fontWeight: 600, textDecoration: "underline",
-              }}>প্রথমবার? Admin account তৈরি করুন</button>
+              }}>{t("login_first_time")}</button>
             </div>
           </form>
         )}
 
-        {/* SETUP */}
         {showSetup && (
           <form onSubmit={handleSetup}>
             {setupMsg.text && (
@@ -164,8 +162,8 @@ export default function Login({ onLogin }) {
             )}
             {[
               { label: "Admin Username", name: "username", type: "text", ph: "admin" },
-              { label: "Password", name: "password", type: "password", ph: "শক্তিশালী password" },
-              { label: "Password নিশ্চিত করুন", name: "confirm", type: "password", ph: "আবার লিখুন" },
+              { label: t("login_password"), name: "password", type: "password", ph: t("login_setup_pw_ph") },
+              { label: t("login_setup_confirm_label"), name: "confirm", type: "password", ph: t("login_setup_confirm_ph") },
             ].map((f, i) => (
               <div key={f.name} style={{ marginBottom: i < 2 ? 14 : 22 }}>
                 <label style={lbl}>{f.label}</label>
@@ -185,13 +183,13 @@ export default function Login({ onLogin }) {
               fontWeight: 700, fontSize: 15, cursor: setupLoading ? "not-allowed" : "pointer",
               fontFamily: "inherit", boxShadow: setupLoading ? "none" : "0 6px 20px rgba(34,197,94,0.35)",
             }}>
-              {setupLoading ? "তৈরি হচ্ছে..." : "✅ Admin তৈরি করুন"}
+              {setupLoading ? t("login_setup_creating") : t("login_setup_btn")}
             </button>
             <div style={{ textAlign: "center", marginTop: 16 }}>
               <button type="button" onClick={() => setShowSetup(false)} style={{
                 background: "none", border: "none",
                 color: "#6b7280", fontSize: 13, cursor: "pointer", fontFamily: "inherit",
-              }}>← লগইনে ফিরুন</button>
+              }}>{t("login_back")}</button>
             </div>
           </form>
         )}

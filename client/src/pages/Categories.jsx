@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { API } from "../api";
 import { glass, T, th, td, primaryBtn, editBtn, deleteBtn, successBtn, secondaryBtn } from "../theme";
+import { useT } from "../context/SettingsContext";
 
 const ACCENT = "#6366f1";
 
 export default function Categories() {
+  const t = useT();
   const [categories, setCategories] = useState([]);
   const [newName,    setNewName]    = useState("");
   const [loading,    setLoading]    = useState(false);
@@ -27,10 +29,10 @@ export default function Categories() {
     setLoading(true);
     try {
       await API.post("/categories", { name: newName.trim() });
-      showMsg("success", `✅ "${newName.trim()}" যোগ হয়েছে!`);
+      showMsg("success", `✅ "${newName.trim()}" ${t("categories_added")}`);
       setNewName(""); load();
     } catch (err) {
-      showMsg("error", "❌ " + (err.response?.data?.error || "কিছু সমস্যা হয়েছে।"));
+      showMsg("error", "❌ " + (err.response?.data?.error || t("categories_problem")));
     } finally { setLoading(false); }
   };
 
@@ -38,20 +40,20 @@ export default function Categories() {
     if (!editName.trim()) return;
     try {
       await API.put(`/categories/${id}`, { name: editName.trim() });
-      showMsg("success", "✅ Category আপডেট হয়েছে!");
+      showMsg("success", `✅ ${t("categories_updated")}`);
       setEditingId(null); load();
     } catch (err) {
-      showMsg("error", "❌ " + (err.response?.data?.error || "আপডেট করতে সমস্যা।"));
+      showMsg("error", "❌ " + (err.response?.data?.error || t("categories_update_error")));
     }
   };
 
   const handleDelete = async (id, name) => {
     try {
       await API.delete(`/categories/${id}`);
-      showMsg("success", `✅ "${name}" মুছে ফেলা হয়েছে।`);
+      showMsg("success", `✅ "${name}" ${t("categories_deleted")}`);
       setDeletingId(null); load();
     } catch (err) {
-      showMsg("error", "❌ " + (err.response?.data?.error || "মুছতে সমস্যা।"));
+      showMsg("error", "❌ " + (err.response?.data?.error || t("categories_delete_error")));
       setDeletingId(null);
     }
   };
@@ -60,15 +62,15 @@ export default function Categories() {
     <div className="page-wrapper" style={{ maxWidth: 720, margin: "0 auto" }}>
 
       <div className="page-header">
-        <h2 className="page-title">🗂️ Categories</h2>
+        <h2 className="page-title">{t("categories_title")}</h2>
       </div>
 
       {/* Add Form */}
       <div style={{ ...glass({ borderRadius: 18, padding: 24, marginBottom: 24 }) }}>
-        <h3 style={{ margin: "0 0 16px", color: T.text1, fontWeight: 800, fontSize: 15 }}>➕ নতুন Category যোগ করুন</h3>
+        <h3 style={{ margin: "0 0 16px", color: T.text1, fontWeight: 800, fontSize: 15 }}>{t("categories_add_heading")}</h3>
         <form onSubmit={handleAdd} style={{ display: "flex", gap: 10 }}>
           <input
-            type="text" placeholder="Category এর নাম লিখুন..."
+            type="text" placeholder={t("categories_placeholder")}
             value={newName} onChange={e => setNewName(e.target.value)}
             style={{
               flex: 1, padding: "10px 14px",
@@ -85,7 +87,7 @@ export default function Categories() {
             opacity: loading || !newName.trim() ? 0.5 : 1,
             cursor: loading || !newName.trim() ? "not-allowed" : "pointer",
           }}>
-            {loading ? "যোগ হচ্ছে..." : "যোগ করুন"}
+            {loading ? t("categories_adding") : t("categories_add_btn")}
           </button>
         </form>
         {msg.text && (
@@ -107,24 +109,24 @@ export default function Categories() {
           borderBottom: "1px solid rgba(255,255,255,0.6)",
           display: "flex", justifyContent: "space-between", alignItems: "center",
         }}>
-          <b style={{ color: T.text1, fontSize: 15 }}>সব Categories</b>
+          <b style={{ color: T.text1, fontSize: 15 }}>{t("categories_all")}</b>
           <span style={{
             background: `${ACCENT}15`, color: ACCENT,
             border: `1px solid ${ACCENT}30`,
             borderRadius: 20, padding: "3px 12px", fontSize: 12, fontWeight: 700,
-          }}>{categories.length} টি</span>
+          }}>{categories.length} {t("items_count")}</span>
         </div>
 
         {categories.length === 0 ? (
           <div style={{ textAlign: "center", padding: 48 }}>
             <div style={{ fontSize: 36, marginBottom: 8 }}>🗂️</div>
-            <p style={{ color: T.text4 }}>কোনো category নেই।</p>
+            <p style={{ color: T.text4 }}>{t("categories_none")}</p>
           </div>
         ) : (
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
-                {["#", "নাম", "তারিখ", "Action"].map(h => <th key={h} style={th}>{h}</th>)}
+                {["#", t("categories_col_name"), t("categories_col_date"), t("action")].map(h => <th key={h} style={th}>{h}</th>)}
               </tr>
             </thead>
             <tbody>
@@ -160,19 +162,19 @@ export default function Categories() {
                   <td style={td}>
                     {editingId === cat.id ? (
                       <div style={{ display: "flex", gap: 6 }}>
-                        <button onClick={() => handleEdit(cat.id)} style={successBtn}>✅ সেভ</button>
-                        <button onClick={() => setEditingId(null)} style={secondaryBtn}>বাতিল</button>
+                        <button onClick={() => handleEdit(cat.id)} style={successBtn}>{t("categories_save")}</button>
+                        <button onClick={() => setEditingId(null)} style={secondaryBtn}>{t("cancel")}</button>
                       </div>
                     ) : deletingId === cat.id ? (
                       <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                        <span style={{ fontSize: 12, color: "#ef4444", fontWeight: 600 }}>নিশ্চিত?</span>
-                        <button onClick={() => handleDelete(cat.id, cat.name)} style={deleteBtn}>হ্যাঁ, মুছুন</button>
-                        <button onClick={() => setDeletingId(null)} style={secondaryBtn}>না</button>
+                        <span style={{ fontSize: 12, color: "#ef4444", fontWeight: 600 }}>{t("categories_confirm")}</span>
+                        <button onClick={() => handleDelete(cat.id, cat.name)} style={deleteBtn}>{t("yes_delete")}</button>
+                        <button onClick={() => setDeletingId(null)} style={secondaryBtn}>{t("no")}</button>
                       </div>
                     ) : (
                       <div style={{ display: "flex", gap: 6 }}>
-                        <button onClick={() => { setEditingId(cat.id); setEditName(cat.name); setDeletingId(null); }} style={editBtn}>✏️ Edit</button>
-                        <button onClick={() => { setDeletingId(cat.id); setEditingId(null); }} style={deleteBtn}>🗑️ Delete</button>
+                        <button onClick={() => { setEditingId(cat.id); setEditName(cat.name); setDeletingId(null); }} style={editBtn}>✏️ {t("edit")}</button>
+                        <button onClick={() => { setDeletingId(cat.id); setEditingId(null); }} style={deleteBtn}>🗑️ {t("delete")}</button>
                       </div>
                     )}
                   </td>

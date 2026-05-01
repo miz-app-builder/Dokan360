@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { API } from "../api";
+import { useT, useSettings } from "../context/SettingsContext";
 
 const ACCENT  = "#6366f1";
 const ACCENT2 = "#8b5cf6";
@@ -10,7 +11,14 @@ const DAYS_BN   = ["রবিবার","সোমবার","মঙ্গলব
 const MONTHS_BN = ["জানুয়ারি","ফেব্রুয়ারি","মার্চ","এপ্রিল","মে","জুন",
                    "জুলাই","আগস্ট","সেপ্টেম্বর","অক্টোবর","নভেম্বর","ডিসেম্বর"];
 
+const DAYS_EN   = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+const MONTHS_EN = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
 export default function Topbar({ user, shopName, onLogout, setPage }) {
+  const t = useT();
+  const { settings } = useSettings();
+  const lang = settings?.language || "bn";
+
   const [now, setNow]           = useState(new Date());
   const [notices, setNotices]   = useState([]);
   const [open, setOpen]         = useState(false);
@@ -25,8 +33,8 @@ export default function Topbar({ user, shopName, onLogout, setPage }) {
   }, [user?.id]);
 
   useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(t);
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -37,8 +45,8 @@ export default function Topbar({ user, shopName, onLogout, setPage }) {
       } catch { setNotices([]); }
     };
     load();
-    const t = setInterval(load, 60_000);
-    return () => clearInterval(t);
+    const timer = setInterval(load, 60_000);
+    return () => clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -53,8 +61,15 @@ export default function Topbar({ user, shopName, onLogout, setPage }) {
   const m    = String(now.getMinutes()).padStart(2, "0");
   const ampm = h >= 12 ? "PM" : "AM";
   const h12  = h % 12 || 12;
-  const timeStr = `${toBn(h12)}:${toBn(m)} ${ampm}`;
-  const dateStr = `${DAYS_BN[now.getDay()]}, ${toBn(now.getDate())} ${MONTHS_BN[now.getMonth()]} ${toBn(now.getFullYear())}`;
+
+  let timeStr, dateStr;
+  if (lang === "en") {
+    timeStr = `${String(h12).padStart(2, "0")}:${m} ${ampm}`;
+    dateStr = `${DAYS_EN[now.getDay()]}, ${now.getDate()} ${MONTHS_EN[now.getMonth()]} ${now.getFullYear()}`;
+  } else {
+    timeStr = `${toBn(h12)}:${toBn(m)} ${ampm}`;
+    dateStr = `${DAYS_BN[now.getDay()]}, ${toBn(now.getDate())} ${MONTHS_BN[now.getMonth()]} ${toBn(now.getFullYear())}`;
+  }
 
   const noticeText = notices.length > 0
     ? notices.map(n => n.text).join("     ◆     ")
@@ -121,12 +136,12 @@ export default function Topbar({ user, shopName, onLogout, setPage }) {
           </div>
         ) : (
           <span style={{ fontSize: 11, color: "#9ca3af", width: "100%", textAlign: "center" }}>
-            — কোনো নোটিশ নেই —
+            {t("topbar_no_notice")}
           </span>
         )}
       </div>
 
-      {/* ── RIGHT: Outlet + User dropdown ── */}
+      {/* ── RIGHT: Shop name + User dropdown ── */}
       <div className="topbar-right" style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
         {shopName && (
           <span className="hide-mobile" style={{
@@ -149,7 +164,6 @@ export default function Topbar({ user, shopName, onLogout, setPage }) {
               transition: "all 0.15s",
             }}
           >
-            {/* Avatar circle */}
             <div style={{
               width: 28, height: 28, borderRadius: "50%",
               background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT2})`,
@@ -182,7 +196,6 @@ export default function Topbar({ user, shopName, onLogout, setPage }) {
               zIndex: 500,
               overflow: "hidden",
             }}>
-              {/* Header */}
               <div style={{ padding: "14px 16px 10px", borderBottom: "1px solid rgba(0,0,0,0.06)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <div style={{
@@ -212,20 +225,19 @@ export default function Topbar({ user, shopName, onLogout, setPage }) {
                 </div>
               </div>
 
-              {/* Menu items */}
               <div style={{ padding: "6px" }}>
                 {user?.role === "admin" && (
                   <button className="topbar-drop-item" onClick={() => { setPage("admin"); setOpen(false); }}>
-                    ⚙️ Admin Panel
+                    {t("topbar_admin_panel")}
                   </button>
                 )}
                 {user?.role === "admin" && (
                   <button className="topbar-drop-item" onClick={() => { setPage("notices"); setOpen(false); }}>
-                    📢 Notice Panel
+                    {t("topbar_notice_panel")}
                   </button>
                 )}
                 <button className="topbar-drop-item" onClick={() => { setPage("settings"); setOpen(false); }}>
-                  🔧 Settings
+                  {t("topbar_settings")}
                 </button>
               </div>
 
@@ -234,7 +246,7 @@ export default function Topbar({ user, shopName, onLogout, setPage }) {
                   className="topbar-drop-item topbar-drop-danger"
                   onClick={() => { setOpen(false); onLogout(); }}
                 >
-                  🚪 Logout
+                  {t("topbar_logout")}
                 </button>
               </div>
             </div>

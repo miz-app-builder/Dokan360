@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import { API } from "../api";
+import { useT } from "../context/SettingsContext";
 
 const ROLES = ["admin", "seller", "viewer"];
 const ROLE_LABEL = { admin: "👑 Admin", seller: "🛒 Seller", viewer: "👁️ Viewer" };
@@ -10,15 +11,6 @@ const ROLE_COLOR = {
   viewer: { bg: "#f3f4f6", color: "#6b7280", border: "#d1d5db" },
 };
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
-const MODULES = [
-  { key: "pos",        label: "🧾 বিক্রয় (POS)" },
-  { key: "products",   label: "📦 পণ্য" },
-  { key: "categories", label: "🗂️ ক্যাটাগরি" },
-  { key: "customers",  label: "👥 কাস্টমার" },
-  { key: "inventory",  label: "📊 ইনভেন্টরি" },
-  { key: "reports",    label: "📈 রিপোর্ট" },
-  { key: "admin",      label: "⚙️ অ্যাডমিন প্যানেল" },
-];
 
 const EMPTY_PROFILE = {
   name: "", father_name: "", mother_name: "",
@@ -33,6 +25,7 @@ const EMPTY_PROFILE = {
    MAIN COMPONENT
 ═══════════════════════════════════════ */
 export default function AdminPanel({ currentUser }) {
+  const t = useT();
   const [tab, setTab] = useState("users");
   const [users, setUsers] = useState([]);
   const [outlets, setOutlets] = useState([]);
@@ -73,7 +66,7 @@ export default function AdminPanel({ currentUser }) {
       setSelectedUser(r.data);
       setShowNewForm(false);
       setTab("profile");
-    } catch { showMsg("error", "Profile লোড করতে সমস্যা।"); }
+    } catch { showMsg("error", t("admin_profile_load_error")); }
   };
 
   return (
@@ -96,15 +89,15 @@ export default function AdminPanel({ currentUser }) {
       {/* Tabs */}
       <div style={{ display: "flex", gap: 6, marginBottom: 24, flexWrap: "wrap" }}>
         {[
-          { key: "users",       label: "👥 Users" },
-          { key: "profile",     label: selectedUser ? `📋 ${selectedUser.username}` : "📋 Profile" },
-          { key: "permissions", label: "🔐 Permissions" },
-        ].map(t => {
-          const active = tab === t.key;
+          { key: "users",       label: `👥 ${t("admin_tab_users")}` },
+          { key: "profile",     label: selectedUser ? `📋 ${selectedUser.username}` : `📋 ${t("admin_tab_profile")}` },
+          { key: "permissions", label: `🔐 ${t("admin_tab_permissions")}` },
+        ].map(tabItem => {
+          const active = tab === tabItem.key;
           return (
             <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
+              key={tabItem.key}
+              onClick={() => setTab(tabItem.key)}
               style={{
                 padding: "9px 20px",
                 background: active ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "rgba(255,255,255,0.65)",
@@ -115,7 +108,7 @@ export default function AdminPanel({ currentUser }) {
                 boxShadow: active ? "0 4px 12px rgba(99,102,241,0.35)" : "0 1px 4px rgba(0,0,0,0.06)",
                 backdropFilter: "blur(10px)",
               }}
-            >{t.label}</button>
+            >{tabItem.label}</button>
           );
         })}
       </div>
@@ -128,13 +121,13 @@ export default function AdminPanel({ currentUser }) {
           onOpen={openProfile}
           onNew={() => { setShowNewForm(true); setSelectedUser(null); setTab("profile"); }}
           onDelete={async (id, username) => {
-            if (!confirm(`"${username}" কে delete করবেন?`)) return;
+            if (!confirm(`"${username}" ${t("admin_delete_confirm_suffix")}`)) return;
             try {
               await API.delete(`/users/${id}`);
-              showMsg("success", `✅ "${username}" মুছে ফেলা হয়েছে।`);
+              showMsg("success", `✅ "${username}" ${t("admin_deleted_suffix")}`);
               loadUsers();
             } catch (err) {
-              showMsg("error", "❌ " + (err.response?.data?.error || "সমস্যা হয়েছে।"));
+              showMsg("error", "❌ " + (err.response?.data?.error || t("error")));
             }
           }}
           showMsg={showMsg}
@@ -152,7 +145,7 @@ export default function AdminPanel({ currentUser }) {
             loadUsers();
             setSelectedUser(u);
             setShowNewForm(false);
-            showMsg("success", "✅ সফলভাবে সেভ হয়েছে!");
+            showMsg("success", `✅ ${t("admin_saved_msg")}`);
           }}
           onBack={() => { setTab("users"); setSelectedUser(null); setShowNewForm(false); }}
           showMsg={showMsg}
@@ -173,7 +166,7 @@ export default function AdminPanel({ currentUser }) {
               await API.put(`/permissions/${role}/${module}`, perms);
               loadPermissions();
             } catch (err) {
-              showMsg("error", "❌ " + (err.response?.data?.error || "সমস্যা হয়েছে।"));
+              showMsg("error", "❌ " + (err.response?.data?.error || t("error")));
             } finally {
               setPermLoading(false);
             }
@@ -189,6 +182,7 @@ export default function AdminPanel({ currentUser }) {
    USER LIST
 ═══════════════════════════════════════ */
 function UserList({ users, currentUser, onOpen, onNew, onDelete }) {
+  const t = useT();
   const [search, setSearch] = useState("");
   const filtered = users.filter(u =>
     (u.name || u.username).toLowerCase().includes(search.toLowerCase()) ||
@@ -199,7 +193,7 @@ function UserList({ users, currentUser, onOpen, onNew, onDelete }) {
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <input
-          placeholder="🔍 নাম বা ফোন দিয়ে খুঁজুন..."
+          placeholder={`🔍 ${t("admin_search_ph")}`}
           value={search}
           onChange={e => setSearch(e.target.value)}
           style={inputStyle}
@@ -210,7 +204,7 @@ function UserList({ users, currentUser, onOpen, onNew, onDelete }) {
           fontSize: 14, cursor: "pointer", whiteSpace: "nowrap", marginLeft: 12,
           fontFamily: "inherit", boxShadow: "0 4px 12px rgba(99,102,241,0.35)",
         }}>
-          ➕ নতুন User
+          {t("admin_new_user")}
         </button>
       </div>
 
@@ -286,7 +280,7 @@ function UserList({ users, currentUser, onOpen, onNew, onDelete }) {
       </div>
 
       {filtered.length === 0 && (
-        <p style={{ textAlign: "center", color: "#9ca3af", padding: 40 }}>কোনো user পাওয়া যায়নি।</p>
+        <p style={{ textAlign: "center", color: "#9ca3af", padding: 40 }}>{t("admin_user_not_found")}</p>
       )}
     </div>
   );
@@ -386,13 +380,14 @@ function CustomSelect({ label, value, onChange, options, placeholder = "— ব�
 }
 
 function OutletPicker({ outlets, value, onChange }) {
+  const t = useT();
   const options = [
-    { value: "", label: "— Outlet নির্ধারণ করুন —" },
+    { value: "", label: t("admin_outlet_select") },
     ...outlets.map(o => ({ value: String(o.id), label: o.name })),
   ];
   return (
     <CustomSelect
-      label="🏬 Outlet (ঐচ্ছিক)"
+      label={t("admin_outlet_label")}
       value={value}
       onChange={onChange}
       options={options}
@@ -405,6 +400,7 @@ function OutletPicker({ outlets, value, onChange }) {
    USER PROFILE FORM
 ═══════════════════════════════════════ */
 function UserProfile({ user, isNew, currentUser, onSaved, onBack, showMsg, outlets = [] }) {
+  const t = useT();
   const [form, setForm] = useState(EMPTY_PROFILE);
   const [photo, setPhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
@@ -438,7 +434,7 @@ function UserProfile({ user, isNew, currentUser, onSaved, onBack, showMsg, outle
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { showMsg("error", "❌ ছবি ৫MB এর কম হতে হবে।"); return; }
+    if (file.size > 5 * 1024 * 1024) { showMsg("error", `❌ ${t("admin_photo_size_error")}`); return; }
 
     const reader = new FileReader();
     reader.onload = (ev) => {
@@ -465,8 +461,8 @@ function UserProfile({ user, isNew, currentUser, onSaved, onBack, showMsg, outle
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (isNew && !form.username.trim()) { showMsg("error", "Username দেওয়া আবশ্যক।"); return; }
-    if (isNew && !form.password.trim()) { showMsg("error", "Password দেওয়া আবশ্যক।"); return; }
+    if (isNew && !form.username.trim()) { showMsg("error", t("admin_username_required")); return; }
+    if (isNew && !form.password.trim()) { showMsg("error", t("admin_password_required")); return; }
 
     setSaving(true);
     try {
@@ -510,13 +506,13 @@ function UserProfile({ user, isNew, currentUser, onSaved, onBack, showMsg, outle
 
       onSaved(savedUser);
     } catch (err) {
-      showMsg("error", "❌ " + (err.response?.data?.error || "সমস্যা হয়েছে।"));
+      showMsg("error", "❌ " + (err.response?.data?.error || t("error")));
     } finally {
       setSaving(false);
     }
   };
 
-  const title = isNew ? "➕ নতুন User তৈরি করুন" : `📋 ${user?.name || user?.username} — Profile`;
+  const title = isNew ? `➕ ${t("admin_new_user_title")}` : `📋 ${user?.name || user?.username} — Profile`;
 
   return (
     <form onSubmit={handleSave}>
@@ -524,7 +520,7 @@ function UserProfile({ user, isNew, currentUser, onSaved, onBack, showMsg, outle
         <h3 style={{ margin: 0, color: "#1e1b4b" }}>{title}</h3>
         <div style={{ display: "flex", gap: 8 }}>
           <button type="button" onClick={onBack} style={{ ...btnStyle("#f3f4f6", "#374151"), padding: "8px 16px" }}>
-            ← ফিরে যান
+            {t("admin_back")}
           </button>
           <button
             type="submit"
@@ -536,7 +532,7 @@ function UserProfile({ user, isNew, currentUser, onSaved, onBack, showMsg, outle
               cursor: saving ? "not-allowed" : "pointer",
             }}
           >
-            {saving ? "সেভ হচ্ছে..." : isNew ? "✅ তৈরি করুন" : "💾 সেভ করুন"}
+            {saving ? t("admin_saving") : isNew ? t("admin_create_btn") : t("admin_save_btn")}
           </button>
         </div>
       </div>
@@ -563,16 +559,16 @@ function UserProfile({ user, isNew, currentUser, onSaved, onBack, showMsg, outle
                 ? <img src={photoPreview} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                 : <div style={{ textAlign: "center", color: "#9ca3af" }}>
                     <div style={{ fontSize: 32 }}>📷</div>
-                    <div style={{ fontSize: 11, marginTop: 4 }}>ছবি আপলোড করুন</div>
+                    <div style={{ fontSize: 11, marginTop: 4 }}>{t("admin_upload_photo")}</div>
                   </div>
               }
             </div>
             <input ref={fileRef} type="file" accept="image/*" onChange={handlePhotoChange} style={{ display: "none" }} />
             <button type="button" onClick={() => fileRef.current?.click()}
               style={{ ...btnStyle("#eef2ff", "#4f46e5"), width: "100%", marginTop: 8, fontSize: 12 }}>
-              📁 ছবি বেছে নিন
+              {t("admin_choose_photo")}
             </button>
-            <p style={{ fontSize: 10, color: "#9ca3af", margin: "4px 0 0", textAlign: "center" }}>সর্বোচ্চ ২ MB, JPG/PNG</p>
+            <p style={{ fontSize: 10, color: "#9ca3af", margin: "4px 0 0", textAlign: "center" }}>{t("admin_photo_limit")}</p>
           </div>
 
           {/* Account Settings */}
@@ -645,34 +641,34 @@ function UserProfile({ user, isNew, currentUser, onSaved, onBack, showMsg, outle
 
           {/* Personal Info */}
           <div style={card}>
-            <label style={sectionLabel}>👤 ব্যক্তিগত তথ্য</label>
+            <label style={sectionLabel}>{t("admin_personal_info")}</label>
             <div style={grid2}>
-              <Field label="পূর্ণ নাম" value={form.name} onChange={v => set("name", v)} />
-              <Field label="পিতার নাম" value={form.father_name} onChange={v => set("father_name", v)} />
-              <Field label="মাতার নাম" value={form.mother_name} onChange={v => set("mother_name", v)} />
-              <Field label="রক্তের গ্রুপ" value={form.blood_group} onChange={v => set("blood_group", v)} type="select" options={["", ...BLOOD_GROUPS]} />
-              <Field label="NID / জন্ম নিবন্ধন নম্বর" value={form.nid_number} onChange={v => set("nid_number", v)} />
-              <Field label="যোগদানের তারিখ" value={form.join_date} onChange={v => set("join_date", v)} type="date" />
+              <Field label={t("admin_full_name")} value={form.name} onChange={v => set("name", v)} />
+              <Field label={t("admin_father_name")} value={form.father_name} onChange={v => set("father_name", v)} />
+              <Field label={t("admin_mother_name")} value={form.mother_name} onChange={v => set("mother_name", v)} />
+              <Field label={t("admin_blood_group")} value={form.blood_group} onChange={v => set("blood_group", v)} type="select" options={["", ...BLOOD_GROUPS]} />
+              <Field label={t("admin_nid")} value={form.nid_number} onChange={v => set("nid_number", v)} />
+              <Field label={t("admin_join_date")} value={form.join_date} onChange={v => set("join_date", v)} type="date" />
             </div>
           </div>
 
           {/* Contact */}
           <div style={card}>
-            <label style={sectionLabel}>📞 যোগাযোগ</label>
+            <label style={sectionLabel}>{t("admin_contact")}</label>
             <div style={grid2}>
-              <Field label="ফোন নম্বর" value={form.phone} onChange={v => set("phone", v)} placeholder="01XXXXXXXXX" />
-              <Field label="ইমেইল" value={form.email} onChange={v => set("email", v)} type="email" />
-              <Field label="জরুরি যোগাযোগ নম্বর" value={form.emergency_contact} onChange={v => set("emergency_contact", v)} placeholder="01XXXXXXXXX" />
-              <Field label="রেফারেন্স" value={form.reference} onChange={v => set("reference", v)} />
+              <Field label={t("admin_phone")} value={form.phone} onChange={v => set("phone", v)} placeholder="01XXXXXXXXX" />
+              <Field label={t("admin_email")} value={form.email} onChange={v => set("email", v)} type="email" />
+              <Field label={t("admin_emergency_contact")} value={form.emergency_contact} onChange={v => set("emergency_contact", v)} placeholder="01XXXXXXXXX" />
+              <Field label={t("admin_reference")} value={form.reference} onChange={v => set("reference", v)} />
             </div>
           </div>
 
           {/* Address */}
           <div style={card}>
-            <label style={sectionLabel}>🏠 ঠিকানা</label>
-            <Field label="বর্তমান ঠিকানা" value={form.present_address} onChange={v => set("present_address", v)} type="textarea" />
+            <label style={sectionLabel}>{t("admin_address")}</label>
+            <Field label={t("admin_present_address")} value={form.present_address} onChange={v => set("present_address", v)} type="textarea" />
             <div style={{ marginTop: 10 }}>
-              <Field label="স্থায়ী ঠিকানা" value={form.permanent_address} onChange={v => set("permanent_address", v)} type="textarea" />
+              <Field label={t("admin_permanent_address")} value={form.permanent_address} onChange={v => set("permanent_address", v)} type="textarea" />
             </div>
           </div>
 
@@ -686,7 +682,7 @@ function UserProfile({ user, isNew, currentUser, onSaved, onBack, showMsg, outle
               fontWeight: "bold", fontSize: 16, cursor: saving ? "not-allowed" : "pointer",
             }}
           >
-            {saving ? "সেভ হচ্ছে..." : isNew ? "✅ User তৈরি করুন" : "💾 সেভ করুন"}
+            {saving ? t("admin_saving") : isNew ? t("admin_user_create_btn") : t("admin_save_btn")}
           </button>
         </div>
       </div>
@@ -698,6 +694,16 @@ function UserProfile({ user, isNew, currentUser, onSaved, onBack, showMsg, outle
    PERMISSIONS PANEL
 ═══════════════════════════════════════ */
 function PermissionsPanel({ permissions, activeRole, setActiveRole, onSave, loading }) {
+  const t = useT();
+  const MODULES = [
+    { key: "pos",        label: `🧾 ${t("nav_pos")}` },
+    { key: "products",   label: `📦 ${t("nav_products")}` },
+    { key: "categories", label: `🗂️ ${t("nav_categories")}` },
+    { key: "customers",  label: `👥 ${t("nav_customers")}` },
+    { key: "inventory",  label: `📊 ${t("nav_inventory")}` },
+    { key: "reports",    label: `📈 ${t("nav_reports")}` },
+    { key: "admin",      label: `⚙️ ${t("nav_admin")}` },
+  ];
   const [local, setLocal] = useState({});
 
   useEffect(() => {

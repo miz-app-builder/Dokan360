@@ -1,9 +1,15 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { API } from "../api";
+import { createT } from "../i18n";
 
 const SettingsContext = createContext({});
 
 export const useSettings = () => useContext(SettingsContext);
+
+export const useT = () => {
+  const { settings } = useContext(SettingsContext);
+  return createT(settings?.language || "bn");
+};
 
 // ── Global defaults (server-side fallback) ────────────────
 const GLOBAL_DEFAULTS = {

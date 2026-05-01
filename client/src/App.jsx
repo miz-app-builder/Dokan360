@@ -13,13 +13,14 @@ import AdminPanel from "./pages/AdminPanel";
 import Settings from "./pages/Settings";
 import NoticePanel from "./pages/NoticePanel";
 import BarcodeScanner from "./components/BarcodeScanner";
-import { SettingsProvider, useSettings } from "./context/SettingsContext";
+import { SettingsProvider, useSettings, useT } from "./context/SettingsContext";
 import { glass, T } from "./theme";
 
 const ACCENT  = "#6366f1";
 const ACCENT2 = "#8b5cf6";
 
 function AppInner({ onUserChange }) {
+  const t = useT();
   const [user, setUser] = useState(() => {
     try { return JSON.parse(localStorage.getItem("dokan360_user")); } catch { return null; }
   });
@@ -105,7 +106,7 @@ function AppInner({ onUserChange }) {
     setShowScanner(false);
     const match = products.find(p => p.barcode === barcode);
     if (match) { addToCart(match); setSearch(""); }
-    else { setSearch(barcode); alert(`⚠️ "${barcode}" বারকোডের কোনো product পাওয়া যায়নি।`); }
+    else { setSearch(barcode); alert(`⚠️ "${barcode}" — ${t("pos_barcode_not_found")}`); }
     setTimeout(() => barcodeRef.current?.focus(), 200);
   };
 
@@ -115,7 +116,7 @@ function AppInner({ onUserChange }) {
 
   const addToCart = (product) => {
     if (isMaxReached(product)) {
-      alert(`❌ Stock শেষ! "${product.name}" এর মাত্র ${product.stock} টি আছে।`);
+      alert(`❌ ${t("pos_stock_exceeded_pre")} "${product.name}" — ${product.stock} ${t("items_count")}`);
       return;
     }
     const exist = cart.find(i => i.id === product.id);
@@ -125,7 +126,10 @@ function AppInner({ onUserChange }) {
 
   const increase = (id) => {
     const product = products.find(p => p.id === id);
-    if (getCartQty(id) >= product.stock) { alert(`❌ সর্বোচ্চ ${product.stock} টি যোগ করা যাবে।`); return; }
+    if (getCartQty(id) >= product.stock) {
+      alert(`❌ ${t("pos_max_stock_pre")} ${product.stock} ${t("items_count")}`);
+      return;
+    }
     setCart(cart.map(i => i.id === id ? { ...i, qty: i.qty + 1 } : i));
   };
   const decrease = (id) => setCart(cart.map(i => i.id === id && i.qty > 1 ? { ...i, qty: i.qty - 1 } : i));
@@ -136,7 +140,7 @@ function AppInner({ onUserChange }) {
   const due   = total - paid;
 
   const checkout = () => {
-    if (cart.length === 0) { alert("Cart খালি আছে!"); return; }
+    if (cart.length === 0) { alert(t("pos_cart_empty_alert")); return; }
     API.post("/sales", {
       items: cart, total,
       customer_id: selectedCustomer?.id || null,
@@ -145,10 +149,10 @@ function AppInner({ onUserChange }) {
       if (res.data.success) {
         const change = paid > total ? paid - total : 0;
         const msg = due > 0
-          ? `✅ Sale সম্পন্ন!\nSale ID: ${res.data.sale_id}\nবাকি: ${due.toFixed(2)} ${cur}`
+          ? `✅ ${t("pos_sale_done")}\nSale ID: ${res.data.sale_id}\n${t("pos_due")}: ${due.toFixed(2)} ${cur}`
           : change > 0
-          ? `✅ Sale সম্পন্ন!\nSale ID: ${res.data.sale_id}\nফেরত দিন: ${change.toFixed(2)} ${cur}`
-          : `✅ Sale সম্পন্ন!\nSale ID: ${res.data.sale_id}`;
+          ? `✅ ${t("pos_sale_done")}\nSale ID: ${res.data.sale_id}\n${t("pos_change")}: ${change.toFixed(2)} ${cur}`
+          : `✅ ${t("pos_sale_done")}\nSale ID: ${res.data.sale_id}`;
         alert(msg);
         setCart([]); setPaidAmount(""); setSelectedCustomer(null); setSearch("");
         loadProducts();
@@ -188,35 +192,20 @@ function AppInner({ onUserChange }) {
       {/* ===== MAIN CONTENT ===== */}
       <main className="page-content">
 
-        {/* Products */}
         {page === "products" && <Products />}
-
-        {/* Categories */}
         {page === "categories" && <Categories />}
-
-        {/* Customers */}
         {page === "customers" && !ledgerCustomer && (
           <Customers onViewLedger={(c) => setLedgerCustomer(c)} />
         )}
         {page === "customers" && ledgerCustomer && (
           <CustomerLedger customer={ledgerCustomer} onBack={() => setLedgerCustomer(null)} />
         )}
-
-        {/* Inventory */}
         {page === "inventory" && <Inventory />}
-
-        {/* Reports */}
         {page === "reports" && <Reports />}
-
-        {/* Admin */}
         {page === "admin" && user?.role === "admin" && (
           <AdminPanel currentUser={user} />
         )}
-
-        {/* Settings */}
         {page === "settings" && <Settings />}
-
-        {/* Notices */}
         {page === "notices" && user?.role === "admin" && <NoticePanel />}
 
         {/* ===== POS PAGE ===== */}
@@ -238,7 +227,7 @@ function AppInner({ onUserChange }) {
                   <input
                     ref={barcodeRef}
                     type="text"
-                    placeholder="নাম বা Barcode দিয়ে খুঁজুন... (Enter)"
+                    placeholder={t("pos_search_ph")}
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                     onKeyDown={handleBarcodeEnter}
@@ -250,7 +239,7 @@ function AppInner({ onUserChange }) {
                 </div>
                 <button
                   onClick={() => setShowScanner(true)}
-                  title="Camera দিয়ে Barcode স্ক্যান করুন"
+                  title={t("pos_barcode_tooltip")}
                   style={{
                     padding: "0 16px",
                     background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT2})`,
@@ -263,7 +252,7 @@ function AppInner({ onUserChange }) {
 
               {/* Category Pills */}
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
-                {[{ id: "", name: `সব (${products.length})` }, ...categories].map(c => {
+                {[{ id: "", name: `${t("all")} (${products.length})` }, ...categories].map(c => {
                   const active = filterCat === String(c.id || "");
                   return (
                     <button key={String(c.id || "")}
@@ -287,13 +276,13 @@ function AppInner({ onUserChange }) {
               {/* Title */}
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
                 <h2 style={{ margin: 0, color: T.text1, fontSize: 16, fontWeight: 700 }}>
-                  📦 Products
+                  📦 {t("nav_products")}
                 </h2>
                 <span style={{
                   background: `${ACCENT}15`, color: ACCENT,
                   borderRadius: 20, padding: "3px 12px", fontSize: 12, fontWeight: 700,
                   border: `1px solid ${ACCENT}30`,
-                }}>{filteredProducts.length} টি</span>
+                }}>{filteredProducts.length} {t("items_count")}</span>
               </div>
 
               {/* Product Grid */}
@@ -331,7 +320,7 @@ function AppInner({ onUserChange }) {
                         border: `1px solid ${outOfStock ? "#fecaca" : lowStock ? "#fde68a" : "#bbf7d0"}`,
                         fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 20,
                       }}>
-                        {outOfStock ? "শেষ" : p.stock}
+                        {outOfStock ? t("pos_out_of_stock") : p.stock}
                       </span>
 
                       <div style={{ color: T.text1, fontWeight: 700, fontSize: 13, marginBottom: 4, paddingRight: 28, lineHeight: 1.4 }}>
@@ -348,7 +337,7 @@ function AppInner({ onUserChange }) {
                           fontSize: 11, color: ACCENT, fontWeight: 700,
                           background: `${ACCENT}12`, borderRadius: 20,
                           padding: "1px 8px", display: "inline-block",
-                        }}>Cart এ: {inCart}টি</div>
+                        }}>{t("pos_in_cart")}: {inCart}</div>
                       )}
                     </div>
                   );
@@ -369,7 +358,7 @@ function AppInner({ onUserChange }) {
                 {/* Customer */}
                 <div style={{ marginBottom: 12 }}>
                   <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: T.text2, fontSize: 13 }}>
-                    👤 Customer (ঐচ্ছিক)
+                    👤 {t("pos_customer_label")}
                   </label>
                   <select
                     value={selectedCustomer?.id || ""}
@@ -382,16 +371,16 @@ function AppInner({ onUserChange }) {
                       color: T.text1, fontFamily: "inherit", outline: "none",
                     }}
                   >
-                    <option value="">-- Walk-in Customer --</option>
+                    <option value="">{t("pos_walkin")}</option>
                     {customers.map(c => (
                       <option key={c.id} value={c.id}>
-                        {c.name}{c.phone ? ` (${c.phone})` : ""}{c.due_amount > 0 ? ` | বাকি: ${c.due_amount} ${cur}` : ""}
+                        {c.name}{c.phone ? ` (${c.phone})` : ""}{c.due_amount > 0 ? ` | ${t("pos_due")}: ${c.due_amount} ${cur}` : ""}
                       </option>
                     ))}
                   </select>
                   {selectedCustomer?.due_amount > 0 && (
                     <div style={{ marginTop: 6, color: "#ef4444", fontSize: 12, fontWeight: 600 }}>
-                      ⚠️ আগের বাকি: {selectedCustomer.due_amount} {cur}
+                      ⚠️ {t("pos_prev_due")}: {selectedCustomer.due_amount} {cur}
                     </div>
                   )}
                 </div>
@@ -399,14 +388,14 @@ function AppInner({ onUserChange }) {
                 {/* Cart title */}
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
                   <h2 style={{ margin: 0, color: T.text1, fontSize: 15, fontWeight: 800 }}>
-                    🛒 Cart
+                    🛒 {t("pos_cart_title")}
                   </h2>
                   <span style={{
                     background: `${ACCENT}15`, color: ACCENT,
                     borderRadius: 20, padding: "2px 10px",
                     fontSize: 12, fontWeight: 700,
                     border: `1px solid ${ACCENT}30`,
-                  }}>{cart.length} item</span>
+                  }}>{cart.length} {t("items_count")}</span>
                 </div>
               </div>
 
@@ -415,7 +404,7 @@ function AppInner({ onUserChange }) {
                 {cart.length === 0 ? (
                   <div style={{ textAlign: "center", padding: "40px 0" }}>
                     <div style={{ fontSize: 36, marginBottom: 8 }}>🛒</div>
-                    <p style={{ color: T.text4, fontSize: 13 }}>Cart খালি আছে</p>
+                    <p style={{ color: T.text4, fontSize: 13 }}>{t("pos_cart_empty")}</p>
                   </div>
                 ) : (
                   cart.map(i => (
@@ -465,18 +454,18 @@ function AppInner({ onUserChange }) {
               }}>
                 {/* Total */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                  <span style={{ fontSize: 15, color: T.text2, fontWeight: 600 }}>মোট:</span>
+                  <span style={{ fontSize: 15, color: T.text2, fontWeight: 600 }}>{t("pos_total")}:</span>
                   <span style={{ fontSize: 20, fontWeight: 900, color: T.text1 }}>{total} {cur}</span>
                 </div>
 
                 {/* Paid Input */}
                 <div style={{ marginBottom: 8 }}>
                   <label style={{ fontSize: 12, fontWeight: 700, display: "block", marginBottom: 5, color: T.text3, textTransform: "uppercase", letterSpacing: "0.4px" }}>
-                    💵 Paid Amount
+                    💵 {t("pos_paid_amount")}
                   </label>
                   <input
                     type="number"
-                    placeholder={`${total} (পুরো টাকা)`}
+                    placeholder={`${total} (${t("pos_full_amount")})`}
                     value={paidAmount}
                     onChange={e => setPaidAmount(e.target.value)}
                     style={{
@@ -496,7 +485,7 @@ function AppInner({ onUserChange }) {
                     borderRadius: 10, padding: "8px 12px", marginBottom: 8,
                     display: "flex", justifyContent: "space-between", alignItems: "center",
                   }}>
-                    <span style={{ color: "#ef4444", fontSize: 13 }}>বাকি:</span>
+                    <span style={{ color: "#ef4444", fontSize: 13 }}>{t("pos_due")}:</span>
                     <b style={{ color: "#ef4444", fontSize: 15 }}>{due.toFixed(2)} {cur}</b>
                   </div>
                 )}
@@ -506,7 +495,7 @@ function AppInner({ onUserChange }) {
                     borderRadius: 10, padding: "8px 12px", marginBottom: 8,
                     display: "flex", justifyContent: "space-between", alignItems: "center",
                   }}>
-                    <span style={{ color: "#16a34a", fontSize: 13 }}>ফেরত:</span>
+                    <span style={{ color: "#16a34a", fontSize: 13 }}>{t("pos_change")}:</span>
                     <b style={{ color: "#16a34a", fontSize: 15 }}>{(paid - total).toFixed(2)} {cur}</b>
                   </div>
                 )}
@@ -527,7 +516,7 @@ function AppInner({ onUserChange }) {
                     boxShadow: cart.length > 0 ? "0 6px 20px rgba(34,197,94,0.35)" : "none",
                     transition: "all 0.15s",
                   }}
-                >✅ Checkout করুন</button>
+                >✅ {t("pos_checkout_btn")}</button>
               </div>
             </div>
           </div>

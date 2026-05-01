@@ -1,9 +1,11 @@
 import { useState } from "react";
+import { useT } from "../context/SettingsContext";
 
 const ACCENT  = "#6366f1";
 const ACCENT2 = "#8b5cf6";
 
 export default function Navbar({ activePage, setPage, user, perms = {}, onLogout, shopName }) {
+  const t = useT();
   const isAdmin = user?.role === "admin";
   const [collapsed, setCollapsed] = useState(false);
 
@@ -14,24 +16,24 @@ export default function Navbar({ activePage, setPage, user, perms = {}, onLogout
   };
 
   const links = [
-    { key: "pos",        icon: "🛒", label: "POS বিক্রয়"   },
-    { key: "products",   icon: "📦", label: "Products"      },
-    { key: "categories", icon: "🗂️",  label: "Categories"   },
-    { key: "customers",  icon: "👥", label: "Customers"     },
-    { key: "inventory",  icon: "🏭", label: "Inventory"     },
-    { key: "reports",    icon: "📊", label: "Reports"       },
-    { key: "notices",    icon: "📢", label: "Notices",     adminOnly: true },
-    { key: "admin",      icon: "⚙️", label: "Admin Panel", adminOnly: true },
-    { key: "settings",   icon: "🔧", label: "Settings"      },
+    { key: "pos",        icon: "🛒", labelKey: "nav_pos"        },
+    { key: "products",   icon: "📦", labelKey: "nav_products"   },
+    { key: "categories", icon: "🗂️",  labelKey: "nav_categories" },
+    { key: "customers",  icon: "👥", labelKey: "nav_customers"  },
+    { key: "inventory",  icon: "🏭", labelKey: "nav_inventory"  },
+    { key: "reports",    icon: "📊", labelKey: "nav_reports"    },
+    { key: "notices",    icon: "📢", labelKey: "nav_notices",   adminOnly: true },
+    { key: "admin",      icon: "⚙️", labelKey: "nav_admin",     adminOnly: true },
+    { key: "settings",   icon: "🔧", labelKey: "nav_settings"   },
   ].filter(l => l.adminOnly ? isAdmin : canView(l.key));
 
   const bottomLinks = [
-    { key: "pos",        icon: "🛒", label: "POS"       },
-    { key: "products",   icon: "📦", label: "Products"  },
-    { key: "customers",  icon: "👥", label: "Customers" },
-    { key: "reports",    icon: "📊", label: "Reports"   },
-    { key: "admin",      icon: "⚙️", label: "Admin",    adminOnly: true },
-    { key: "settings",   icon: "🔧", label: "Settings"  },
+    { key: "pos",        icon: "🛒", labelKey: "nav_pos"       },
+    { key: "products",   icon: "📦", labelKey: "nav_products"  },
+    { key: "customers",  icon: "👥", labelKey: "nav_customers" },
+    { key: "reports",    icon: "📊", labelKey: "nav_reports"   },
+    { key: "admin",      icon: "⚙️", labelKey: "nav_admin",    adminOnly: true },
+    { key: "settings",   icon: "🔧", labelKey: "nav_settings"  },
   ].filter(l => l.adminOnly ? isAdmin : (canView(l.key) || l.key === "settings"));
 
   const roleLabel = { admin: "👑 Admin", seller: "🛒 Seller", viewer: "👁️ Viewer" };
@@ -85,11 +87,12 @@ export default function Navbar({ activePage, setPage, user, perms = {}, onLogout
         <nav style={{ flex: 1, padding: collapsed ? "8px 8px" : "12px 12px", overflowY: "auto", overflowX: "hidden" }}>
           {links.map(l => {
             const active = activePage === l.key;
+            const label  = t(l.labelKey);
             return (
               <button
                 key={l.key}
                 onClick={() => setPage(l.key)}
-                title={collapsed ? l.label : undefined}
+                title={collapsed ? label : undefined}
                 style={{
                   width: "100%",
                   display: "flex", alignItems: "center",
@@ -121,7 +124,7 @@ export default function Navbar({ activePage, setPage, user, perms = {}, onLogout
                 }}
               >
                 <span style={{ fontSize: 18, flexShrink: 0 }}>{l.icon}</span>
-                {!collapsed && <span>{l.label}</span>}
+                {!collapsed && <span>{label}</span>}
                 {!collapsed && active && (
                   <span style={{
                     marginLeft: "auto",
@@ -161,7 +164,7 @@ export default function Navbar({ activePage, setPage, user, perms = {}, onLogout
           )}
           <button
             onClick={onLogout}
-            title={collapsed ? "Logout" : undefined}
+            title={collapsed ? t("nav_logout") : undefined}
             style={{
               width: "100%",
               display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start",
@@ -177,7 +180,7 @@ export default function Navbar({ activePage, setPage, user, perms = {}, onLogout
             }}
           >
             <span>🚪</span>
-            {!collapsed && <span>Logout</span>}
+            {!collapsed && <span>{t("nav_logout")}</span>}
           </button>
         </div>
       </aside>
@@ -186,6 +189,7 @@ export default function Navbar({ activePage, setPage, user, perms = {}, onLogout
       <nav className="bottom-nav">
         {bottomLinks.map(l => {
           const active = activePage === l.key;
+          const label  = t(l.labelKey);
           return (
             <button key={l.key} onClick={() => setPage(l.key)} style={{
               flex: 1, display: "flex", flexDirection: "column", alignItems: "center",
@@ -202,7 +206,7 @@ export default function Navbar({ activePage, setPage, user, perms = {}, onLogout
               <span style={{
                 color: active ? ACCENT : "#9ca3af",
                 fontSize: 10, fontWeight: active ? 700 : 400,
-              }}>{l.label}</span>
+              }}>{label}</span>
             </button>
           );
         })}

@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { API } from "../api";
 import { glass, T, inputStyle, labelStyle, primaryBtn, secondaryBtn, editBtn, deleteBtn, th, td, msgBox, stockBadge } from "../theme";
+import { useT } from "../context/SettingsContext";
 
 const EMPTY = { name: "", buy_price: "", sell_price: "", stock: "", barcode: "", category_id: "" };
 const ACCENT = "#6366f1";
 
 export default function Products() {
+  const t = useT();
   const [products,   setProducts]   = useState([]);
   const [categories, setCategories] = useState([]);
   const [form,       setForm]       = useState(EMPTY);
@@ -50,29 +52,29 @@ export default function Products() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.name.trim()) { showMsg("error", "নাম দেওয়া আবশ্যক।"); return; }
+    if (!form.name.trim()) { showMsg("error", t("products_name_required")); return; }
     setLoading(true);
     try {
       if (editingId) {
         await API.put(`/products/${editingId}`, form);
-        showMsg("success", `✅ "${form.name}" আপডেট হয়েছে!`);
+        showMsg("success", `✅ "${form.name}" ${t("products_updated")}`);
       } else {
         await API.post("/products", form);
-        showMsg("success", `✅ "${form.name}" যোগ হয়েছে!`);
+        showMsg("success", `✅ "${form.name}" ${t("products_added")}`);
       }
       setForm(EMPTY); setEditingId(null); setShowForm(false); load();
     } catch (err) {
-      showMsg("error", "❌ " + (err.response?.data?.error || "সমস্যা হয়েছে।"));
+      showMsg("error", "❌ " + (err.response?.data?.error || t("products_problem")));
     } finally { setLoading(false); }
   };
 
   const handleDelete = async (p) => {
-    if (!confirm(`"${p.name}" মুছে ফেলবেন?`)) return;
+    if (!confirm(`"${p.name}" ${t("products_confirm_delete")}`)) return;
     try {
       await API.delete(`/products/${p.id}`);
-      showMsg("success", `✅ "${p.name}" মুছে ফেলা হয়েছে।`); load();
+      showMsg("success", `✅ "${p.name}" ${t("products_deleted")}`); load();
     } catch (err) {
-      showMsg("error", "❌ " + (err.response?.data?.error || "মুছতে সমস্যা হয়েছে।"));
+      showMsg("error", "❌ " + (err.response?.data?.error || t("products_delete_error")));
     }
   };
 
@@ -88,21 +90,18 @@ export default function Products() {
   return (
     <div className="page-wrapper">
 
-      {/* Header */}
       <div className="page-header">
-        <h2 className="page-title">📦 Products</h2>
-        <button onClick={openAdd} style={primaryBtn}>➕ নতুন Product</button>
+        <h2 className="page-title">{t("products_title")}</h2>
+        <button onClick={openAdd} style={primaryBtn}>{t("products_add_new")}</button>
       </div>
 
-      {/* Message */}
       {msg.text && <div style={msgBox(msg.type)}>{msg.text}</div>}
 
-      {/* Form */}
       {showForm && (
         <div style={{ ...glass({ borderRadius: 18, padding: 24, marginBottom: 24 }) }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
             <h3 style={{ margin: 0, color: T.text1, fontWeight: 800, fontSize: 16 }}>
-              {editingId ? "✏️ Product সম্পাদনা" : "➕ নতুন Product যোগ"}
+              {editingId ? t("products_edit_title") : t("products_add_title")}
             </h3>
             <button onClick={() => { setShowForm(false); setEditingId(null); setForm(EMPTY); }}
               style={{ background: "none", border: "none", fontSize: 20, cursor: "pointer", color: T.text4 }}>✕</button>
@@ -110,22 +109,22 @@ export default function Products() {
           <form onSubmit={handleSubmit}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
               <div style={{ gridColumn: "1 / -1" }}>
-                {fld("নাম *", <input name="name" value={form.name} onChange={handleChange}
-                  placeholder="Product এর নাম" style={inputStyle} required className="glass-input" />)}
+                {fld(t("products_name_label"), <input name="name" value={form.name} onChange={handleChange}
+                  placeholder={t("products_name_ph")} style={inputStyle} required className="glass-input" />)}
               </div>
-              {fld("ক্রয় মূল্য (Buy Price) ৳", <input name="buy_price" type="number" value={form.buy_price}
+              {fld(t("products_buy_price"), <input name="buy_price" type="number" value={form.buy_price}
                 onChange={handleChange} placeholder="0" style={inputStyle} className="glass-input" />)}
-              {fld("বিক্রয় মূল্য (Sell Price) ৳", <input name="sell_price" type="number" value={form.sell_price}
+              {fld(t("products_sell_price"), <input name="sell_price" type="number" value={form.sell_price}
                 onChange={handleChange} placeholder="0" style={inputStyle} className="glass-input" />)}
-              {fld("Stock পরিমাণ", <input name="stock" type="number" value={form.stock}
+              {fld(t("products_stock_qty"), <input name="stock" type="number" value={form.stock}
                 onChange={handleChange} placeholder="0" style={inputStyle} className="glass-input" />)}
-              {fld("Barcode", <input name="barcode" value={form.barcode}
-                onChange={handleChange} placeholder="Barcode নম্বর" style={inputStyle} className="glass-input" />)}
+              {fld(t("products_barcode"), <input name="barcode" value={form.barcode}
+                onChange={handleChange} placeholder={t("products_barcode_ph")} style={inputStyle} className="glass-input" />)}
               <div style={{ gridColumn: "1 / -1" }}>
-                {fld("Category", (
+                {fld(t("products_category"), (
                   <select name="category_id" value={form.category_id} onChange={handleChange}
                     style={{ ...inputStyle, cursor: "pointer" }}>
-                    <option value="">-- Category বেছে নিন --</option>
+                    <option value="">{t("products_select_cat")}</option>
                     {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 ))}
@@ -133,11 +132,11 @@ export default function Products() {
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
               <button type="submit" disabled={loading} style={primaryBtn}>
-                {loading ? "সংরক্ষণ হচ্ছে..." : editingId ? "✅ আপডেট" : "✅ যোগ করুন"}
+                {loading ? t("products_saving") : editingId ? t("products_update_btn") : t("products_add_btn")}
               </button>
               <button type="button"
                 onClick={() => { setShowForm(false); setEditingId(null); setForm(EMPTY); }}
-                style={secondaryBtn}>বাতিল</button>
+                style={secondaryBtn}>{t("cancel")}</button>
             </div>
           </form>
         </div>
@@ -147,13 +146,13 @@ export default function Products() {
       <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
         <div style={{ ...glass({ borderRadius: 12, padding: "0 14px" }), display: "flex", alignItems: "center", gap: 6 }}>
           <span style={{ color: T.text4 }}>🔍</span>
-          <input type="text" placeholder="নাম বা Barcode খুঁজুন..."
+          <input type="text" placeholder={t("products_search_ph")}
             value={search} onChange={e => setSearch(e.target.value)}
             style={{ background: "none", border: "none", outline: "none", padding: "10px 0", fontSize: 14, color: T.text1, width: 220, fontFamily: "inherit" }}
           />
         </div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {[{ id: "", name: `সব (${products.length})` }, ...categories.map(c => ({
+          {[{ id: "", name: `${t("all")} (${products.length})` }, ...categories.map(c => ({
             id: String(c.id), name: `${c.name} (${products.filter(p => p.category_id === c.id).length})`
           }))].map(c => {
             const active = filterCat === String(c.id);
@@ -178,25 +177,25 @@ export default function Products() {
           borderBottom: "1px solid rgba(255,255,255,0.6)",
           display: "flex", justifyContent: "space-between", alignItems: "center",
         }}>
-          <b style={{ color: T.text1, fontSize: 15 }}>Product তালিকা</b>
+          <b style={{ color: T.text1, fontSize: 15 }}>{t("products_list")}</b>
           <span style={{
             background: `${ACCENT}15`, color: ACCENT,
             border: `1px solid ${ACCENT}30`,
             borderRadius: 20, padding: "3px 12px", fontSize: 12, fontWeight: 700,
-          }}>{filtered.length} টি</span>
+          }}>{filtered.length} {t("items_count")}</span>
         </div>
 
         {filtered.length === 0 ? (
           <div style={{ textAlign: "center", padding: 48 }}>
             <div style={{ fontSize: 36, marginBottom: 8 }}>📦</div>
-            <p style={{ color: T.text4 }}>কোনো product পাওয়া যায়নি।</p>
+            <p style={{ color: T.text4 }}>{t("products_not_found")}</p>
           </div>
         ) : (
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr>
-                  {["#", "নাম", "Category", "ক্রয় মূল্য", "বিক্রয় মূল্য", "Stock", "Barcode", "Action"].map(h => (
+                  {["#", t("products_col_name"), t("products_category"), t("products_col_buy"), t("products_col_sell"), t("products_col_stock"), t("products_col_barcode"), t("action")].map(h => (
                     <th key={h} style={th}>{h}</th>
                   ))}
                 </tr>
@@ -220,8 +219,8 @@ export default function Products() {
                     <td style={{ ...td, color: T.text4, fontSize: 12 }}>{p.barcode || "—"}</td>
                     <td style={td}>
                       <div style={{ display: "flex", gap: 6 }}>
-                        <button onClick={() => openEdit(p)} style={editBtn}>✏️ Edit</button>
-                        <button onClick={() => handleDelete(p)} style={deleteBtn}>🗑️ Delete</button>
+                        <button onClick={() => openEdit(p)} style={editBtn}>✏️ {t("edit")}</button>
+                        <button onClick={() => handleDelete(p)} style={deleteBtn}>🗑️ {t("delete")}</button>
                       </div>
                     </td>
                   </tr>

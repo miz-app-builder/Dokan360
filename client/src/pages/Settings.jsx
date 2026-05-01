@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { API } from "../api";
-import { useSettings } from "../context/SettingsContext";
+import { useSettings, useT } from "../context/SettingsContext";
 
 // Display tab is for all users; other tabs are admin-only
 const TABS = [
@@ -43,6 +43,7 @@ function getCurrentUser() {
 }
 
 export default function Settings() {
+  const t = useT();
   const { settings, loadSettings, updateDisplayPrefs } = useSettings();
   const currentUser = getCurrentUser();
   const isAdmin     = currentUser?.role === "admin";
@@ -109,7 +110,7 @@ export default function Settings() {
       setDisplaySaved(true);
       setTimeout(() => setDisplaySaved(false), 2000);
     } catch {
-      setDisplayError("❌ Save হয়নি, আবার চেষ্টা করুন।");
+      setDisplayError("❌ " + t("settings_save_error"));
       setTimeout(() => setDisplayError(""), 3000);
     }
   };
@@ -123,7 +124,7 @@ export default function Settings() {
       setDisplaySaved(true);
       setTimeout(() => setDisplaySaved(false), 2500);
     } catch (err) {
-      setDisplayError("❌ " + (err.response?.data?.error || "সমস্যা হয়েছে, আবার চেষ্টা করুন।"));
+      setDisplayError("❌ " + (err.response?.data?.error || t("settings_save_error")));
     } finally {
       setDisplaySaving(false);
     }
@@ -132,7 +133,7 @@ export default function Settings() {
   const handleLogoChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) { showMsg("error", "❌ Logo ২MB এর কম হতে হবে।"); return; }
+    if (file.size > 2 * 1024 * 1024) { showMsg("error", `❌ ${t("settings_logo_size_error")}`); return; }
     const reader = new FileReader();
     reader.onload = (ev) => {
       const img = new Image();
@@ -172,43 +173,43 @@ export default function Settings() {
       };
       await API.put("/settings", payload);
       loadSettings();
-      showMsg("success", "✅ Settings সফলভাবে save হয়েছে!");
+      showMsg("success", `✅ ${t("settings_saved")}`);
     } catch (err) {
-      showMsg("error", "❌ " + (err.response?.data?.error || "সমস্যা হয়েছে।"));
+      showMsg("error", "❌ " + (err.response?.data?.error || t("error")));
     } finally {
       setSaving(false);
     }
   };
 
   const handleOutletSave = async () => {
-    if (!outletForm.name.trim()) { showMsg("error", "Outlet নাম দিন।"); return; }
+    if (!outletForm.name.trim()) { showMsg("error", t("settings_outlet_name_required")); return; }
     setOutletSaving(true);
     try {
       if (editingOutlet) {
         await API.put(`/outlets/${editingOutlet.id}`, outletForm);
-        showMsg("success", "✅ Outlet আপডেট হয়েছে!");
+        showMsg("success", `✅ ${t("settings_outlet_updated")}`);
       } else {
         await API.post("/outlets", outletForm);
-        showMsg("success", "✅ নতুন Outlet যোগ হয়েছে!");
+        showMsg("success", `✅ ${t("settings_outlet_added")}`);
       }
       setOutletForm({ name: "", address: "", phone: "", is_active: true });
       setEditingOutlet(null);
       loadOutlets();
     } catch (err) {
-      showMsg("error", "❌ " + (err.response?.data?.error || "সমস্যা হয়েছে।"));
+      showMsg("error", "❌ " + (err.response?.data?.error || t("error")));
     } finally {
       setOutletSaving(false);
     }
   };
 
   const handleOutletDelete = async (id, name) => {
-    if (!confirm(`"${name}" outlet টি delete করবেন?`)) return;
+    if (!confirm(`"${name}" ${t("settings_outlet_confirm_delete")}`)) return;
     try {
       await API.delete(`/outlets/${id}`);
-      showMsg("success", "✅ Outlet মুছে ফেলা হয়েছে।");
+      showMsg("success", `✅ ${t("settings_outlet_deleted")}`);
       loadOutlets();
     } catch (err) {
-      showMsg("error", "❌ " + (err.response?.data?.error || "সমস্যা হয়েছে।"));
+      showMsg("error", "❌ " + (err.response?.data?.error || t("error")));
     }
   };
 
@@ -283,7 +284,7 @@ export default function Settings() {
                 </div>
                 <button type="button" onClick={() => logoRef.current?.click()}
                   style={{ ...actionBtn, fontSize: 12, padding: "6px 12px" }}>
-                  📁 Logo আপলোড
+                  {t("settings_logo_upload")}
                 </button>
                 {logoPreview && (
                   <button type="button" onClick={() => { set("shop_logo", ""); setLogoPreview(""); }}
@@ -334,7 +335,7 @@ export default function Settings() {
                 </span>
               </div>
               <button onClick={handleOutletSave} disabled={outletSaving} style={actionBtn}>
-                {outletSaving ? "সেভ হচ্ছে..." : editingOutlet ? "✅ আপডেট করুন" : "➕ Outlet যোগ করুন"}
+                {outletSaving ? t("settings_saving") : editingOutlet ? t("settings_outlet_update_btn") : t("settings_outlet_add_btn")}
               </button>
             </div>
           </div>
