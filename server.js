@@ -102,6 +102,21 @@ app.get("/auth/me", authMiddleware, (req, res) => {
 });
 
 /* =========================
+   ⚙️ PUBLIC SETTINGS (no auth needed — for display)
+========================= */
+app.get("/settings/public", async (req, res) => {
+  const publicKeys = ["shop_name", "shop_logo", "shop_address", "shop_phone", "currency_symbol", "language"];
+  const { data, error } = await supabase
+    .from("settings")
+    .select("key, value")
+    .in("key", publicKeys);
+  if (error) return res.status(500).json({ error: error.message });
+  const map = {};
+  (data || []).forEach(r => { map[r.key] = r.value; });
+  res.json(map);
+});
+
+/* =========================
    🔐 PROTECTED ROUTES START (Phase 5.4)
    সব route এর নিচে authMiddleware apply হবে
 ========================= */
@@ -883,20 +898,6 @@ app.get("/settings", async (req, res) => {
   const { data, error } = await supabase
     .from("settings")
     .select("key, value");
-  if (error) return res.status(500).json({ error: error.message });
-
-  const map = {};
-  (data || []).forEach(r => { map[r.key] = r.value; });
-  res.json(map);
-});
-
-// GET settings — public (no auth needed for shop info display)
-app.get("/settings/public", async (req, res) => {
-  const publicKeys = ["shop_name", "shop_logo", "shop_address", "shop_phone", "currency_symbol", "language"];
-  const { data, error } = await supabase
-    .from("settings")
-    .select("key, value")
-    .in("key", publicKeys);
   if (error) return res.status(500).json({ error: error.message });
 
   const map = {};
