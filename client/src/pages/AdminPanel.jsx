@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { createPortal } from "react-dom";
 import { API } from "../api";
 
 const ROLES = ["admin", "seller", "viewer"];
@@ -297,24 +298,61 @@ function UserList({ users, currentUser, onOpen, onNew, onDelete }) {
 /* options: [{ value, label }]  — generic custom dropdown (no native OS picker) */
 function CustomSelect({ label, value, onChange, options, placeholder = "— বেছে নিন —", wrapStyle = {} }) {
   const [open, setOpen] = useState(false);
-  const [dropPos, setDropPos] = useState({ top: 0, left: 0, width: 0, upward: false });
+  const [rect, setRect] = useState(null);
   const btnRef = useRef(null);
   const selected = options.find(o => String(o.value) === String(value));
 
   const handleOpen = () => {
     if (!open && btnRef.current) {
-      const rect = btnRef.current.getBoundingClientRect();
-      const spaceBelow = window.innerHeight - rect.bottom;
-      const upward = spaceBelow < 240;
-      setDropPos({
-        top: upward ? rect.top : rect.bottom + 2,
-        left: rect.left,
-        width: rect.width,
-        upward,
-      });
+      setRect(btnRef.current.getBoundingClientRect());
     }
     setOpen(o => !o);
   };
+
+  const upward = rect ? (window.innerHeight - rect.bottom) < 240 : false;
+
+  const dropdown = open && rect ? createPortal(
+    <>
+      <div
+        onClick={() => setOpen(false)}
+        style={{ position: "fixed", inset: 0, zIndex: 9998 }}
+      />
+      <div style={{
+        position: "fixed",
+        zIndex: 9999,
+        left: rect.left,
+        width: rect.width,
+        ...(upward
+          ? { bottom: window.innerHeight - rect.top - 2, top: "auto" }
+          : { top: rect.bottom + 2 }),
+        background: "#fff",
+        border: "1px solid #e5e7eb",
+        borderRadius: 8,
+        boxShadow: "0 8px 24px rgba(0,0,0,0.18)",
+        maxHeight: 220,
+        overflowY: "auto",
+      }}>
+        {options.map(o => (
+          <div
+            key={String(o.value)}
+            onClick={() => { onChange(String(o.value)); setOpen(false); }}
+            style={{
+              padding: "10px 14px", fontSize: 13, cursor: "pointer",
+              background: String(o.value) === String(value) ? "#eef2ff" : "#fff",
+              color: String(o.value) === String(value) ? "#4f46e5" : (o.value ? "#1e1b4b" : "#9ca3af"),
+              fontWeight: String(o.value) === String(value) ? 600 : 400,
+              borderBottom: "1px solid #f3f4f6",
+              display: "flex", justifyContent: "space-between", alignItems: "center",
+            }}
+          >
+            {o.label}
+            {String(o.value) === String(value) && <span style={{ color: "#4f46e5" }}>✓</span>}
+          </div>
+        ))}
+      </div>
+    </>,
+    document.body
+  ) : null;
 
   return (
     <div style={{ position: "relative", ...wrapStyle }}>
@@ -339,44 +377,10 @@ function CustomSelect({ label, value, onChange, options, placeholder = "— ব�
           {selected ? selected.label : placeholder}
         </span>
         <span style={{ fontSize: 10, color: "#9ca3af", flexShrink: 0, marginLeft: 6 }}>
-          {open ? (dropPos.upward ? "▼" : "▲") : "▼"}
+          {open ? (upward ? "▼" : "▲") : "▼"}
         </span>
       </button>
-      {open && (
-        <>
-          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 999 }} />
-          <div style={{
-            position: "fixed",
-            zIndex: 1000,
-            left: dropPos.left,
-            width: dropPos.width,
-            ...(dropPos.upward
-              ? { bottom: window.innerHeight - dropPos.top, top: "auto" }
-              : { top: dropPos.top }),
-            background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8,
-            boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
-            maxHeight: 220, overflowY: "auto",
-          }}>
-            {options.map(o => (
-              <div
-                key={o.value}
-                onClick={() => { onChange(String(o.value)); setOpen(false); }}
-                style={{
-                  padding: "10px 14px", fontSize: 13, cursor: "pointer",
-                  background: String(o.value) === String(value) ? "#eef2ff" : "#fff",
-                  color: String(o.value) === String(value) ? "#4f46e5" : (o.value ? "#1e1b4b" : "#9ca3af"),
-                  fontWeight: String(o.value) === String(value) ? 600 : 400,
-                  borderBottom: "1px solid #f3f4f6",
-                  display: "flex", justifyContent: "space-between", alignItems: "center",
-                }}
-              >
-                {o.label}
-                {String(o.value) === String(value) && <span style={{ color: "#4f46e5" }}>✓</span>}
-              </div>
-            ))}
-          </div>
-        </>
-      )}
+      {dropdown}
     </div>
   );
 }
