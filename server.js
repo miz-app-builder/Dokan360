@@ -133,6 +133,76 @@ app.get("/customers", async (req, res) => {
   res.json(data);
 });
 
+// POST — নতুন customer তৈরি (Phase 2.1)
+app.post("/customers", async (req, res) => {
+  const { name, phone } = req.body;
+  if (!name || !name.trim()) return res.status(400).json({ error: "নাম দেওয়া আবশ্যক।" });
+
+  // Duplicate phone check
+  if (phone && phone.trim()) {
+    const { data: existing } = await supabase
+      .from("customers")
+      .select("id")
+      .eq("phone", phone.trim())
+      .maybeSingle();
+
+    if (existing) return res.status(400).json({ error: "এই ফোন নম্বর দিয়ে আগে থেকেই customer আছে।" });
+  }
+
+  const { data, error } = await supabase
+    .from("customers")
+    .insert([{ name: name.trim(), phone: phone?.trim() || null, due_amount: 0 }])
+    .select()
+    .single();
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// GET — customer ledger (Phase 2.2)
+app.get("/customers/:id/ledger", async (req, res) => {
+  const { id } = req.params;
+
+  // Customer info
+  const { data: customer, error: custErr } = await supabase
+    .from("customers")
+    .select("id, name, phone, due_amount")
+    .eq("id", id)
+    .single();
+
+  if (custErr || !customer) return res.status(404).json({ error: "Customer পাওয়া যায়নি।" });
+
+  // Sales by this customer (requires customer_id column in sales table)
+  const { data: sales, error: saleErr } = await supabase
+    .from("sales")
+    .select("id, total_amount, paid_amount, customer_id, created_at")
+    .eq("customer_id", id)
+    .order("created_at", { ascending: false });
+
+  const salesList = saleErr ? [] : (sales || []);
+
+  // Payments by this customer
+  const { data: payments, error: payErr } = await supabase
+    .from("payments")
+    .select("id, amount, created_at")
+    .eq("customer_id", id)
+    .order("created_at", { ascending: false });
+
+  if (payErr) return res.status(500).json({ error: payErr.message });
+
+  const totalSale    = salesList.reduce((s, r) => s + (r.total_amount || 0), 0);
+  const totalPaid    = salesList.reduce((s, r) => s + (r.paid_amount  || 0), 0);
+  const totalPayment = (payments || []).reduce((s, r) => s + (r.amount || 0), 0);
+
+  res.json({
+    customer,
+    summary: { totalSale, totalPaid, totalPayment, due: customer.due_amount },
+    sales: salesList,
+    payments: payments || [],
+    schema_warning: saleErr ? "sales table এ customer_id column নেই। নিচের SQL চালান।" : null,
+  });
+});
+
 /* =========================
    💰 SALES API
 ========================= */
@@ -142,13 +212,14 @@ app.post("/sales", async (req, res) => {
 
   try {
     // 1. Create sale record
+    // Note: customer_id & paid_amount columns added via SQL migration
+    const saleRow = { total_amount: total };
+    if (customer_id) saleRow.customer_id = customer_id;
+    saleRow.paid_amount = paid_amount || total;
+
     const { data: sale, error: saleError } = await supabase
       .from("sales")
-      .insert([{
-        total_amount: total,
-        customer_id: customer_id || null,
-        paid_amount: paid_amount || total,
-      }])
+      .insert([saleRow])
       .select()
       .single();
 
