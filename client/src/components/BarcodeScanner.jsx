@@ -5,50 +5,79 @@ export default function BarcodeScanner({ onDetected, onClose }) {
   const videoRef = useRef(null);
   const readerRef = useRef(null);
   const controlsRef = useRef(null);
+  const streamRef = useRef(null);
 
   const [cameras, setCameras] = useState([]);
-  const [selectedCamera, setSelectedCamera] = useState("");
-  const [status, setStatus] = useState("ক্যামেরা খুলছে...");
+  const [selectedCamera, setSelectedCamera] = useState(null);
+  const [status, setStatus] = useState("ক্যামেরা চালু করছি...");
   const [lastScan, setLastScan] = useState("");
   const [error, setError] = useState("");
 
-  // Init reader and list cameras
+  // Step 1: On mount — request permission first, then list cameras
   useEffect(() => {
     readerRef.current = new BrowserMultiFormatReader();
-
-    BrowserMultiFormatReader.listVideoInputDevices()
-      .then(devices => {
-        if (devices.length === 0) {
-          setError("কোনো ক্যামেরা পাওয়া যায়নি।");
-          return;
-        }
-        setCameras(devices);
-        // Prefer back camera
-        const back = devices.find(d =>
-          d.label.toLowerCase().includes("back") ||
-          d.label.toLowerCase().includes("rear") ||
-          d.label.toLowerCase().includes("environment")
-        );
-        setSelectedCamera((back || devices[devices.length - 1]).deviceId);
-      })
-      .catch(() => setError("ক্যামেরার অনুমতি নেই বা সমস্যা হয়েছে।"));
-
-    return () => {
-      stopScanner();
-    };
+    requestAndStart();
+    return () => cleanup();
   }, []);
 
-  // Start scanning when camera selected
-  useEffect(() => {
-    if (!selectedCamera || !videoRef.current) return;
-    startScanner(selectedCamera);
-    return () => stopScanner();
-  }, [selectedCamera]);
+  const cleanup = () => {
+    try { controlsRef.current?.stop(); } catch {}
+    try {
+      streamRef.current?.getTracks().forEach(t => t.stop());
+    } catch {}
+  };
 
-  const startScanner = (deviceId) => {
-    stopScanner();
+  const requestAndStart = async () => {
+    try {
+      // Request camera permission — this triggers the permission dialog
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" } },
+        audio: false,
+      });
+      streamRef.current = stream;
+
+      // Attach stream to video so user can see it
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+
+      setStatus("ক্যামেরা চালু হয়েছে। স্ক্যান করুন...");
+
+      // Now list available cameras for switching
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(d => d.kind === "videoinput");
+      setCameras(videoDevices);
+
+      // Find back camera device id
+      const back = videoDevices.find(d =>
+        d.label.toLowerCase().includes("back") ||
+        d.label.toLowerCase().includes("rear") ||
+        d.label.toLowerCase().includes("environment") ||
+        d.label.toLowerCase().includes("0,")
+      );
+      const deviceId = back?.deviceId || videoDevices[videoDevices.length - 1]?.deviceId;
+
+      // Stop the preview stream and start zxing scanner on same camera
+      stream.getTracks().forEach(t => t.stop());
+      startZxing(deviceId || undefined);
+
+    } catch (err) {
+      if (err.name === "NotAllowedError") {
+        setError("❌ ক্যামেরার অনুমতি দেননি। Browser settings থেকে Camera allow করুন।");
+      } else if (err.name === "NotFoundError") {
+        setError("❌ কোনো ক্যামেরা পাওয়া যায়নি।");
+      } else {
+        setError("❌ ক্যামেরা চালু করতে সমস্যা: " + err.message);
+      }
+    }
+  };
+
+  const startZxing = (deviceId) => {
+    // Stop previous controls if any
+    try { controlsRef.current?.stop(); } catch {}
+
     setStatus("স্ক্যান করুন...");
-    setError("");
 
     readerRef.current
       .decodeFromVideoDevice(deviceId, videoRef.current, (result, err, controls) => {
@@ -56,39 +85,34 @@ export default function BarcodeScanner({ onDetected, onClose }) {
         if (result) {
           const text = result.getText();
           setLastScan(text);
-          setStatus(`✅ পাওয়া গেছে: ${text}`);
-          // Stop and call parent
+          setStatus(`✅ পাওয়া গেছে!`);
           controls.stop();
-          setTimeout(() => onDetected(text), 300);
+          setTimeout(() => onDetected(text), 200);
         }
-        // Errors between frames are normal — ignored
       })
-      .catch(() => {
-        setError("ক্যামেরা চালু করতে সমস্যা হয়েছে। অনুমতি দিন।");
+      .catch(e => {
+        setError("❌ Scanner error: " + e.message);
       });
   };
 
-  const stopScanner = () => {
-    try {
-      controlsRef.current?.stop();
-    } catch {}
-  };
-
-  const handleCameraChange = (deviceId) => {
+  const switchCamera = async (deviceId) => {
     setSelectedCamera(deviceId);
+    setStatus("ক্যামেরা বদলাচ্ছি...");
+    startZxing(deviceId);
   };
 
   return (
     <div style={{
       position: "fixed", inset: 0,
-      background: "rgba(0,0,0,0.85)",
+      background: "rgba(0,0,0,0.92)",
       zIndex: 9999,
       display: "flex", flexDirection: "column",
-      alignItems: "center", justifyContent: "center",
+      alignItems: "center", justifyContent: "flex-start",
+      paddingTop: 16,
     }}>
       {/* Header */}
       <div style={{
-        width: "100%", maxWidth: 480,
+        width: "100%", maxWidth: 500,
         display: "flex", justifyContent: "space-between", alignItems: "center",
         padding: "0 16px 12px",
       }}>
@@ -96,7 +120,7 @@ export default function BarcodeScanner({ onDetected, onClose }) {
           📷 Barcode Scanner
         </div>
         <button
-          onClick={() => { stopScanner(); onClose(); }}
+          onClick={() => { cleanup(); onClose(); }}
           style={{
             background: "#ef4444", color: "#fff",
             border: "none", borderRadius: 8,
@@ -108,62 +132,84 @@ export default function BarcodeScanner({ onDetected, onClose }) {
         </button>
       </div>
 
-      {/* Camera view */}
+      {/* Video container */}
       <div style={{
-        position: "relative",
-        width: "100%", maxWidth: 480,
+        width: "100%", maxWidth: 500,
         borderRadius: 16, overflow: "hidden",
-        background: "#000",
+        background: "#111",
+        position: "relative",
         aspectRatio: "4/3",
       }}>
         <video
           ref={videoRef}
-          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+          playsInline
+          muted
+          autoPlay
+          style={{
+            width: "100%", height: "100%",
+            objectFit: "cover", display: "block",
+          }}
         />
-        {/* Scan line animation */}
-        <div style={{
-          position: "absolute", inset: 0,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          pointerEvents: "none",
-        }}>
+
+        {/* Scan frame overlay */}
+        {!error && (
           <div style={{
-            width: "70%", height: "70%",
-            border: "2px solid rgba(79, 70, 229, 0.8)",
-            borderRadius: 12,
-            boxShadow: "0 0 0 9999px rgba(0,0,0,0.35)",
+            position: "absolute", inset: 0,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            pointerEvents: "none",
           }}>
             <div style={{
-              width: "100%", height: 3,
-              background: "rgba(79, 70, 229, 0.9)",
-              animation: "scanLine 2s linear infinite",
-            }} />
+              width: "65%", height: "50%",
+              border: "3px solid #4f46e5",
+              borderRadius: 12,
+              boxShadow: "0 0 0 9999px rgba(0,0,0,0.4)",
+              position: "relative",
+              overflow: "hidden",
+            }}>
+              <div style={{
+                position: "absolute",
+                left: 0, right: 0, height: 3,
+                background: "rgba(99, 102, 241, 0.9)",
+                animation: "scanLine 2s linear infinite",
+              }} />
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Status / Error */}
-      <div style={{ marginTop: 14, textAlign: "center", padding: "0 20px" }}>
+      {/* Status */}
+      <div style={{ marginTop: 16, textAlign: "center", padding: "0 20px" }}>
         {error ? (
-          <p style={{ color: "#fca5a5", fontWeight: "bold", fontSize: 15 }}>{error}</p>
+          <div>
+            <p style={{ color: "#fca5a5", fontWeight: "bold", fontSize: 15 }}>{error}</p>
+            <button
+              onClick={requestAndStart}
+              style={{
+                marginTop: 10, padding: "10px 24px",
+                background: "#4f46e5", color: "#fff",
+                border: "none", borderRadius: 8,
+                fontWeight: "bold", fontSize: 14, cursor: "pointer",
+              }}
+            >
+              🔄 আবার চেষ্টা করুন
+            </button>
+          </div>
         ) : (
           <p style={{ color: "#a5b4fc", fontSize: 15 }}>{status}</p>
         )}
         {lastScan && (
-          <p style={{
-            color: "#86efac", fontWeight: "bold",
-            fontSize: 16, marginTop: 4,
-          }}>
+          <p style={{ color: "#86efac", fontWeight: "bold", fontSize: 16, marginTop: 4 }}>
             বারকোড: {lastScan}
           </p>
         )}
       </div>
 
-      {/* Camera selector (if multiple) */}
+      {/* Camera switcher */}
       {cameras.length > 1 && (
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 14 }}>
           <select
-            value={selectedCamera}
-            onChange={e => handleCameraChange(e.target.value)}
+            value={selectedCamera || ""}
+            onChange={e => switchCamera(e.target.value)}
             style={{
               padding: "8px 14px", borderRadius: 8,
               border: "1px solid #4f46e5",
@@ -171,21 +217,20 @@ export default function BarcodeScanner({ onDetected, onClose }) {
               fontSize: 13, cursor: "pointer",
             }}
           >
-            {cameras.map(cam => (
+            {cameras.map((cam, i) => (
               <option key={cam.deviceId} value={cam.deviceId}>
-                {cam.label || `ক্যামেরা ${cam.deviceId.slice(0, 8)}`}
+                {cam.label || `ক্যামেরা ${i + 1}`}
               </option>
             ))}
           </select>
         </div>
       )}
 
-      {/* Scan line CSS */}
       <style>{`
         @keyframes scanLine {
-          0%   { transform: translateY(0); opacity: 1; }
-          50%  { transform: translateY(200px); opacity: 0.6; }
-          100% { transform: translateY(0); opacity: 1; }
+          0%   { top: 0; }
+          50%  { top: calc(100% - 3px); }
+          100% { top: 0; }
         }
       `}</style>
     </div>
