@@ -843,7 +843,31 @@ app.post("/sales", async (req, res) => {
    👤 USER MANAGEMENT API — Admin only
 ========================= */
 
-const USER_PROFILE_FIELDS = "id, username, role, is_active, name, father_name, mother_name, present_address, permanent_address, email, phone, blood_group, join_date, reference, emergency_contact, nid_number, photo_url, created_at";
+const BASE_PROFILE_FIELDS = "id, username, role, is_active, name, father_name, mother_name, present_address, permanent_address, email, phone, blood_group, join_date, reference, emergency_contact, nid_number, photo_url, created_at";
+let USER_PROFILE_FIELDS = BASE_PROFILE_FIELDS;
+let OUTLET_ID_SUPPORTED = false;
+
+// Check at startup if outlet_id column exists; if not, try to create it
+(async () => {
+  const { error: checkErr } = await supabase.from("users").select("outlet_id").limit(1);
+  if (!checkErr) {
+    OUTLET_ID_SUPPORTED = true;
+    USER_PROFILE_FIELDS = BASE_PROFILE_FIELDS + ", outlet_id";
+    console.log("✅ outlet_id column ready");
+  } else {
+    // Try to add the column via Supabase RPC if available
+    const { error: rpcErr } = await supabase.rpc("run_sql", {
+      sql: "ALTER TABLE users ADD COLUMN IF NOT EXISTS outlet_id INTEGER REFERENCES outlets(id) ON DELETE SET NULL;"
+    });
+    if (!rpcErr) {
+      OUTLET_ID_SUPPORTED = true;
+      USER_PROFILE_FIELDS = BASE_PROFILE_FIELDS + ", outlet_id";
+      console.log("✅ outlet_id column created and ready");
+    } else {
+      console.log("⚠️  outlet_id column missing — outlet assignment will be skipped until column is added.");
+    }
+  }
+})();
 
 // GET all users (with profile summary)
 app.get("/users", adminOnly, async (req, res) => {
@@ -901,7 +925,7 @@ app.put("/users/:id", adminOnly, async (req, res) => {
     name, father_name, mother_name,
     present_address, permanent_address,
     email, phone, blood_group,
-    join_date, reference, emergency_contact, nid_number,
+    join_date, reference, emergency_contact, nid_number, outlet_id,
   } = req.body;
 
   const updates = {};
@@ -920,6 +944,7 @@ app.put("/users/:id", adminOnly, async (req, res) => {
   if (reference !== undefined)         updates.reference = reference;
   if (emergency_contact !== undefined) updates.emergency_contact = emergency_contact;
   if (nid_number !== undefined)        updates.nid_number = nid_number;
+  if (outlet_id !== undefined && OUTLET_ID_SUPPORTED) updates.outlet_id = outlet_id || null;
 
   if (!Object.keys(updates).length) return res.status(400).json({ error: "কিছু পরিবর্তন করুন।" });
 

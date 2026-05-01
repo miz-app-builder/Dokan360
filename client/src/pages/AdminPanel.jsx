@@ -25,7 +25,7 @@ const EMPTY_PROFILE = {
   email: "", phone: "", blood_group: "",
   join_date: "", reference: "", emergency_contact: "",
   nid_number: "", role: "seller", password: "",
-  is_active: true, username: "",
+  is_active: true, username: "", outlet_id: "",
 };
 
 /* ═══════════════════════════════════════
@@ -34,6 +34,7 @@ const EMPTY_PROFILE = {
 export default function AdminPanel({ currentUser }) {
   const [tab, setTab] = useState("users");
   const [users, setUsers] = useState([]);
+  const [outlets, setOutlets] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [showNewForm, setShowNewForm] = useState(false);
   const [msg, setMsg] = useState({ type: "", text: "" });
@@ -57,6 +58,7 @@ export default function AdminPanel({ currentUser }) {
   useEffect(() => {
     loadUsers();
     loadPermissions();
+    API.get("/outlets").then(r => setOutlets(r.data || [])).catch(() => {});
   }, []);
 
   const showMsg = (type, text) => {
@@ -153,6 +155,7 @@ export default function AdminPanel({ currentUser }) {
           }}
           onBack={() => { setTab("users"); setSelectedUser(null); setShowNewForm(false); }}
           showMsg={showMsg}
+          outlets={outlets}
         />
       )}
 
@@ -291,7 +294,7 @@ function UserList({ users, currentUser, onOpen, onNew, onDelete }) {
 /* ═══════════════════════════════════════
    USER PROFILE FORM
 ═══════════════════════════════════════ */
-function UserProfile({ user, isNew, currentUser, onSaved, onBack, showMsg }) {
+function UserProfile({ user, isNew, currentUser, onSaved, onBack, showMsg, outlets = [] }) {
   const [form, setForm] = useState(EMPTY_PROFILE);
   const [photo, setPhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
@@ -309,6 +312,7 @@ function UserProfile({ user, isNew, currentUser, onSaved, onBack, showMsg }) {
         reference: user.reference || "", emergency_contact: user.emergency_contact || "",
         nid_number: user.nid_number || "", role: user.role || "seller",
         password: "", is_active: user.is_active !== false, username: user.username || "",
+        outlet_id: user.outlet_id ? String(user.outlet_id) : "",
       });
       setPhotoPreview(user.photo_url || null);
       setPhoto(null);
@@ -370,6 +374,7 @@ function UserProfile({ user, isNew, currentUser, onSaved, onBack, showMsg }) {
           blood_group: form.blood_group, reference: form.reference,
           emergency_contact: form.emergency_contact, nid_number: form.nid_number,
           is_active: form.is_active,
+          outlet_id: form.outlet_id ? parseInt(form.outlet_id) : null,
         });
       } else {
         const body = {
@@ -380,6 +385,7 @@ function UserProfile({ user, isNew, currentUser, onSaved, onBack, showMsg }) {
           phone: form.phone, blood_group: form.blood_group,
           join_date: form.join_date || null, reference: form.reference,
           emergency_contact: form.emergency_contact, nid_number: form.nid_number,
+          outlet_id: form.outlet_id ? parseInt(form.outlet_id) : null,
         };
         if (form.password) body.password = form.password;
         const r = await API.put(`/users/${user.id}`, body);
@@ -465,6 +471,15 @@ function UserProfile({ user, isNew, currentUser, onSaved, onBack, showMsg }) {
               <input type="password" value={form.password} onChange={e => set("password", e.target.value)}
                 placeholder={isNew ? "" : "পরিবর্তন করতে লিখুন"} style={inp} />
             </div>
+            {outlets.length > 0 && (
+              <div style={{ marginBottom: 10 }}>
+                <label style={lbl}>🏬 Outlet (ঐচ্ছিক)</label>
+                <select value={form.outlet_id} onChange={e => set("outlet_id", e.target.value)} style={inp}>
+                  <option value="">— Outlet নির্ধারণ করুন —</option>
+                  {outlets.map(o => <option key={o.id} value={String(o.id)}>{o.name}</option>)}
+                </select>
+              </div>
+            )}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <label style={lbl}>Status</label>
               <div
