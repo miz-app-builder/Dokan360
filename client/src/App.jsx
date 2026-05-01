@@ -9,13 +9,16 @@ import Inventory from "./pages/Inventory";
 import Reports from "./pages/Reports";
 import Login from "./pages/Login";
 import AdminPanel from "./pages/AdminPanel";
+import Settings from "./pages/Settings";
 import BarcodeScanner from "./components/BarcodeScanner";
+import { SettingsProvider, useSettings } from "./context/SettingsContext";
 
-export default function App() {
+function AppInner() {
   // ── Auth state ──────────────────────────────────────────────────
   const [user, setUser] = useState(() => {
     try { return JSON.parse(localStorage.getItem("dokan360_user")); } catch { return null; }
   });
+  const { settings } = useSettings();
 
   // ── App state ───────────────────────────────────────────────────
   const [page, setPage] = useState("pos");
@@ -75,6 +78,10 @@ export default function App() {
 
   // ── Early return (AFTER all hooks) ──────────────────────────────
   if (!user) return <Login onLogin={handleLogin} />;
+
+  // ── Apply font size from settings ────────────────────────────────
+  const fontSizeMap = { small: "13px", medium: "15px", large: "17px" };
+  const appFontSize = fontSizeMap[settings?.font_size] || "15px";
 
   // ── Derived values ───────────────────────────────────────────────
   const filteredProducts = products.filter(p => {
@@ -160,7 +167,7 @@ export default function App() {
 
   // ── Render ────────────────────────────────────────────────────────
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: "#f5f6fa" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: "#f5f6fa", fontSize: appFontSize }}>
 
       {/* Camera Barcode Scanner Overlay */}
       {showScanner && (
@@ -176,6 +183,7 @@ export default function App() {
         user={user}
         perms={perms}
         onLogout={handleLogout}
+        shopName={settings?.shop_name}
       />
 
       {/* ===== PRODUCTS PAGE ===== */}
@@ -212,6 +220,13 @@ export default function App() {
       {page === "admin" && user?.role === "admin" && (
         <div style={{ flex: 1, overflowY: "auto" }}>
           <AdminPanel currentUser={user} />
+        </div>
+      )}
+
+      {/* ===== SETTINGS PAGE ===== */}
+      {page === "settings" && user?.role === "admin" && (
+        <div style={{ flex: 1, overflowY: "auto" }}>
+          <Settings />
         </div>
       )}
 
@@ -414,3 +429,14 @@ const activeCatBtn = {
   ...catBtn, background: "#4f46e5", color: "#fff",
   border: "1px solid #4f46e5", fontWeight: "bold",
 };
+
+export default function App() {
+  const [user, setUser] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("dokan360_user")); } catch { return null; }
+  });
+  return (
+    <SettingsProvider isLoggedIn={!!user}>
+      <AppInner />
+    </SettingsProvider>
+  );
+}

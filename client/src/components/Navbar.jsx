@@ -1,4 +1,4 @@
-export default function Navbar({ activePage, setPage, user, perms = {}, onLogout }) {
+export default function Navbar({ activePage, setPage, user, perms = {}, onLogout, shopName }) {
   const isAdmin = user?.role === "admin";
 
   // Admin always sees everything. Others use permission table.
@@ -15,7 +15,8 @@ export default function Navbar({ activePage, setPage, user, perms = {}, onLogout
     { key: "customers",  label: "👥 Customers" },
     { key: "inventory",  label: "🏭 Inventory" },
     { key: "reports",    label: "📊 Reports" },
-    { key: "admin",      label: "⚙️ Admin",  adminOnly: true },
+    { key: "admin",      label: "⚙️ Admin",     adminOnly: true },
+    { key: "settings",   label: "🔧 Settings",  adminOnly: true },
   ].filter(l => l.adminOnly ? isAdmin : canView(l.key));
 
   const roleLabel = { admin: "👑 Admin", seller: "🛒 Seller", viewer: "👁️ Viewer" };
@@ -35,7 +36,7 @@ export default function Navbar({ activePage, setPage, user, perms = {}, onLogout
         color: "#fff", fontWeight: "bold", fontSize: 17,
         marginRight: 16, padding: "14px 0", whiteSpace: "nowrap",
       }}>
-        🏪 Dokan360
+        🏪 {shopName || "Dokan360"}
       </span>
 
       {links.map(l => (

@@ -875,6 +875,124 @@ app.put("/permissions/:role/:module", adminOnly, async (req, res) => {
 });
 
 /* =========================
+   ⚙️ SETTINGS API — Module 6
+========================= */
+
+// GET all settings (key-value map)
+app.get("/settings", async (req, res) => {
+  const { data, error } = await supabase
+    .from("settings")
+    .select("key, value");
+  if (error) return res.status(500).json({ error: error.message });
+
+  const map = {};
+  (data || []).forEach(r => { map[r.key] = r.value; });
+  res.json(map);
+});
+
+// GET settings — public (no auth needed for shop info display)
+app.get("/settings/public", async (req, res) => {
+  const publicKeys = ["shop_name", "shop_logo", "shop_address", "shop_phone", "currency_symbol", "language"];
+  const { data, error } = await supabase
+    .from("settings")
+    .select("key, value")
+    .in("key", publicKeys);
+  if (error) return res.status(500).json({ error: error.message });
+
+  const map = {};
+  (data || []).forEach(r => { map[r.key] = r.value; });
+  res.json(map);
+});
+
+// PUT — upsert a single setting key
+app.put("/settings/:key", adminOnly, async (req, res) => {
+  const { key } = req.params;
+  const { value } = req.body;
+  if (value === undefined) return res.status(400).json({ error: "value দেওয়া আবশ্যক।" });
+
+  const { data, error } = await supabase
+    .from("settings")
+    .upsert({ key, value }, { onConflict: "key" })
+    .select()
+    .single();
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ success: true, key, value: data.value });
+});
+
+// PUT — bulk update multiple settings at once
+app.put("/settings", adminOnly, async (req, res) => {
+  const settings = req.body; // { key: value, key2: value2 }
+  if (!settings || typeof settings !== "object") {
+    return res.status(400).json({ error: "settings object দিন।" });
+  }
+
+  const rows = Object.entries(settings).map(([key, value]) => ({ key, value: String(value) }));
+  if (rows.length === 0) return res.status(400).json({ error: "কমপক্ষে একটি setting দিন।" });
+
+  const { error } = await supabase
+    .from("settings")
+    .upsert(rows, { onConflict: "key" });
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ success: true, updated: rows.length });
+});
+
+/* =========================
+   🏪 OUTLETS API — Module 6
+========================= */
+
+// GET all outlets
+app.get("/outlets", async (req, res) => {
+  const { data, error } = await supabase
+    .from("outlets")
+    .select("*")
+    .order("created_at");
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
+// POST — create new outlet
+app.post("/outlets", adminOnly, async (req, res) => {
+  const { name, address, phone, is_active } = req.body;
+  if (!name || !name.trim()) return res.status(400).json({ error: "Outlet নাম দেওয়া আবশ্যক।" });
+
+  const { data, error } = await supabase
+    .from("outlets")
+    .insert([{ name: name.trim(), address: address || null, phone: phone || null, is_active: is_active !== false }])
+    .select()
+    .single();
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// PUT — update outlet
+app.put("/outlets/:id", adminOnly, async (req, res) => {
+  const { id } = req.params;
+  const { name, address, phone, is_active } = req.body;
+  if (!name || !name.trim()) return res.status(400).json({ error: "Outlet নাম দেওয়া আবশ্যক।" });
+
+  const { data, error } = await supabase
+    .from("outlets")
+    .update({ name: name.trim(), address: address || null, phone: phone || null, is_active: is_active !== false })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// DELETE — outlet
+app.delete("/outlets/:id", adminOnly, async (req, res) => {
+  const { id } = req.params;
+  const { error } = await supabase.from("outlets").delete().eq("id", id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ success: true });
+});
+
+/* =========================
    🚀 START SERVER
 ========================= */
 app.listen(3000, "0.0.0.0", () => {
