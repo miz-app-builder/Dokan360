@@ -8,6 +8,11 @@ export default function Customers({ onViewLedger }) {
   const [msg, setMsg] = useState({ type: "", text: "" });
   const [search, setSearch] = useState("");
 
+  // Edit/Delete state
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState({ name: "", phone: "" });
+  const [deletingId, setDeletingId] = useState(null);
+
   const load = () => {
     API.get("/customers").then(r => setCustomers(r.data)).catch(console.error);
   };
@@ -19,6 +24,7 @@ export default function Customers({ onViewLedger }) {
     setTimeout(() => setMsg({ type: "", text: "" }), 3500);
   };
 
+  // ADD
   const handleAdd = async (e) => {
     e.preventDefault();
     if (!form.name.trim()) { showMsg("error", "নাম দেওয়া আবশ্যক।"); return; }
@@ -35,6 +41,39 @@ export default function Customers({ onViewLedger }) {
     }
   };
 
+  // START EDIT
+  const startEdit = (c) => {
+    setEditingId(c.id);
+    setEditForm({ name: c.name, phone: c.phone || "" });
+    setDeletingId(null);
+  };
+
+  // SAVE EDIT
+  const handleEdit = async (id) => {
+    if (!editForm.name.trim()) return;
+    try {
+      await API.put(`/customers/${id}`, { name: editForm.name.trim(), phone: editForm.phone.trim() });
+      showMsg("success", "✅ Customer সফলভাবে আপডেট হয়েছে!");
+      setEditingId(null);
+      load();
+    } catch (err) {
+      showMsg("error", "❌ " + (err.response?.data?.error || "আপডেট করতে সমস্যা হয়েছে।"));
+    }
+  };
+
+  // DELETE
+  const handleDelete = async (id, name) => {
+    try {
+      await API.delete(`/customers/${id}`);
+      showMsg("success", `✅ "${name}" মুছে ফেলা হয়েছে।`);
+      setDeletingId(null);
+      load();
+    } catch (err) {
+      showMsg("error", "❌ " + (err.response?.data?.error || "মুছতে সমস্যা হয়েছে।"));
+      setDeletingId(null);
+    }
+  };
+
   const filtered = customers.filter(c =>
     c.name.toLowerCase().includes(search.toLowerCase()) ||
     (c.phone && c.phone.includes(search))
@@ -43,7 +82,7 @@ export default function Customers({ onViewLedger }) {
   const totalDue = customers.reduce((s, c) => s + (c.due_amount || 0), 0);
 
   return (
-    <div style={{ maxWidth: 900, margin: "24px auto", padding: "0 16px" }}>
+    <div style={{ maxWidth: 960, margin: "24px auto", padding: "0 16px" }}>
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <h2 style={{ margin: 0, color: "#1e1b4b" }}>👥 Customers</h2>
@@ -103,9 +142,11 @@ export default function Customers({ onViewLedger }) {
               type="submit"
               disabled={loading}
               style={{
-                padding: "10px 20px", background: loading ? "#d1d5db" : "#4f46e5",
+                padding: "10px 20px",
+                background: loading ? "#d1d5db" : "#4f46e5",
                 color: "#fff", border: "none", borderRadius: 8,
-                fontWeight: "bold", fontSize: 14, cursor: loading ? "not-allowed" : "pointer",
+                fontWeight: "bold", fontSize: 14,
+                cursor: loading ? "not-allowed" : "pointer",
                 whiteSpace: "nowrap",
               }}
             >
@@ -150,7 +191,7 @@ export default function Customers({ onViewLedger }) {
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ background: "#f3f4f6" }}>
-                  {["#", "নাম", "ফোন", "বাকি", ""].map(h => (
+                  {["#", "নাম", "ফোন", "বাকি", "Ledger", "Action"].map(h => (
                     <th key={h} style={th}>{h}</th>
                   ))}
                 </tr>
@@ -164,8 +205,36 @@ export default function Customers({ onViewLedger }) {
                     onMouseLeave={e => e.currentTarget.style.background = "#fff"}
                   >
                     <td style={td}>{i + 1}</td>
-                    <td style={{ ...td, fontWeight: "bold" }}>👤 {c.name}</td>
-                    <td style={{ ...td, color: "#6b7280" }}>{c.phone || "—"}</td>
+
+                    {/* Name cell */}
+                    <td style={{ ...td, fontWeight: "bold" }}>
+                      {editingId === c.id ? (
+                        <input
+                          value={editForm.name}
+                          onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+                          style={{ ...inputStyle, width: 140 }}
+                          autoFocus
+                        />
+                      ) : (
+                        <>👤 {c.name}</>
+                      )}
+                    </td>
+
+                    {/* Phone cell */}
+                    <td style={{ ...td, color: "#6b7280" }}>
+                      {editingId === c.id ? (
+                        <input
+                          value={editForm.phone}
+                          onChange={e => setEditForm({ ...editForm, phone: e.target.value })}
+                          placeholder="01XXXXXXXXX"
+                          style={{ ...inputStyle, width: 130 }}
+                        />
+                      ) : (
+                        c.phone || "—"
+                      )}
+                    </td>
+
+                    {/* Due */}
                     <td style={td}>
                       {c.due_amount > 0 ? (
                         <span style={{
@@ -184,6 +253,8 @@ export default function Customers({ onViewLedger }) {
                         </span>
                       )}
                     </td>
+
+                    {/* Ledger */}
                     <td style={td}>
                       <button
                         onClick={() => onViewLedger(c)}
@@ -195,6 +266,27 @@ export default function Customers({ onViewLedger }) {
                       >
                         📒 Ledger
                       </button>
+                    </td>
+
+                    {/* Action */}
+                    <td style={td}>
+                      {editingId === c.id ? (
+                        <div style={{ display: "flex", gap: 6 }}>
+                          <button onClick={() => handleEdit(c.id)} style={btnGreen}>✅ সেভ</button>
+                          <button onClick={() => setEditingId(null)} style={btnGray}>বাতিল</button>
+                        </div>
+                      ) : deletingId === c.id ? (
+                        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                          <span style={{ fontSize: 12, color: "#ef4444" }}>নিশ্চিত?</span>
+                          <button onClick={() => handleDelete(c.id, c.name)} style={btnRed}>হ্যাঁ</button>
+                          <button onClick={() => setDeletingId(null)} style={btnGray}>না</button>
+                        </div>
+                      ) : (
+                        <div style={{ display: "flex", gap: 6 }}>
+                          <button onClick={() => startEdit(c)} style={btnBlue}>✏️ Edit</button>
+                          <button onClick={() => { setDeletingId(c.id); setEditingId(null); }} style={btnRed}>🗑️</button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -214,3 +306,12 @@ const inputStyle = {
 };
 const th = { padding: "10px 14px", textAlign: "left", fontSize: 13, color: "#6b7280", fontWeight: "bold" };
 const td = { padding: "11px 14px", fontSize: 14, color: "#374151" };
+
+const btnBase = {
+  padding: "5px 12px", border: "none", borderRadius: 6,
+  fontSize: 12, fontWeight: "bold", cursor: "pointer", whiteSpace: "nowrap",
+};
+const btnBlue  = { ...btnBase, background: "#eef2ff", color: "#4f46e5" };
+const btnRed   = { ...btnBase, background: "#fef2f2", color: "#ef4444" };
+const btnGreen = { ...btnBase, background: "#f0fdf4", color: "#16a34a" };
+const btnGray  = { ...btnBase, background: "#f3f4f6", color: "#6b7280" };

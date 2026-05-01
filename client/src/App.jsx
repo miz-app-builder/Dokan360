@@ -9,6 +9,7 @@ import Inventory from "./pages/Inventory";
 import Reports from "./pages/Reports";
 import Login from "./pages/Login";
 import AdminPanel from "./pages/AdminPanel";
+import BarcodeScanner from "./components/BarcodeScanner";
 
 export default function App() {
   // ── Auth state ──────────────────────────────────────────────────
@@ -27,6 +28,7 @@ export default function App() {
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [paidAmount, setPaidAmount] = useState("");
   const [ledgerCustomer, setLedgerCustomer] = useState(null);
+  const [showScanner, setShowScanner] = useState(false);
   const barcodeRef = useRef(null);
 
   // ── Auth handlers ───────────────────────────────────────────────
@@ -79,6 +81,19 @@ export default function App() {
       if (match) { addToCart(match); setSearch(""); }
       else if (filteredProducts.length === 1) { addToCart(filteredProducts[0]); setSearch(""); }
     }
+  };
+
+  const handleScanDetected = (barcode) => {
+    setShowScanner(false);
+    const match = products.find(p => p.barcode === barcode);
+    if (match) {
+      addToCart(match);
+      setSearch("");
+    } else {
+      setSearch(barcode);
+      alert(`⚠️ "${barcode}" বারকোডের কোনো product পাওয়া যায়নি।`);
+    }
+    setTimeout(() => barcodeRef.current?.focus(), 200);
   };
 
   const getCartQty  = (id) => (cart.find(i => i.id === id)?.qty || 0);
@@ -137,6 +152,14 @@ export default function App() {
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: "#f5f6fa" }}>
 
+      {/* Camera Barcode Scanner Overlay */}
+      {showScanner && (
+        <BarcodeScanner
+          onDetected={handleScanDetected}
+          onClose={() => setShowScanner(false)}
+        />
+      )}
+
       <Navbar
         activePage={page}
         setPage={(p) => { setPage(p); setLedgerCustomer(null); }}
@@ -188,19 +211,34 @@ export default function App() {
           {/* LEFT: PRODUCTS */}
           <div style={{ width: "55%", padding: 16, overflowY: "auto", borderRight: "2px solid #e5e7eb" }}>
 
-            <input
-              ref={barcodeRef}
-              type="text"
-              placeholder="🔍 নাম বা Barcode দিয়ে খুঁজুন... (Enter চাপুন)"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              onKeyDown={handleBarcodeEnter}
-              style={{
-                width: "100%", padding: "10px 14px", fontSize: 15,
-                border: "2px solid #4f46e5", borderRadius: 8,
-                outline: "none", boxSizing: "border-box", marginBottom: 10,
-              }}
-            />
+            <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+              <input
+                ref={barcodeRef}
+                type="text"
+                placeholder="🔍 নাম বা Barcode দিয়ে খুঁজুন... (Enter চাপুন)"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                onKeyDown={handleBarcodeEnter}
+                style={{
+                  flex: 1, padding: "10px 14px", fontSize: 15,
+                  border: "2px solid #4f46e5", borderRadius: 8,
+                  outline: "none", boxSizing: "border-box",
+                }}
+              />
+              <button
+                onClick={() => setShowScanner(true)}
+                title="Camera দিয়ে Barcode স্ক্যান করুন"
+                style={{
+                  padding: "10px 16px",
+                  background: "#4f46e5", color: "#fff",
+                  border: "none", borderRadius: 8,
+                  fontSize: 20, cursor: "pointer",
+                  flexShrink: 0,
+                }}
+              >
+                📷
+              </button>
+            </div>
 
             {/* Category Filter */}
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>

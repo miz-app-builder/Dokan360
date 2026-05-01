@@ -203,6 +203,36 @@ app.post("/categories", async (req, res) => {
   res.json(data);
 });
 
+// EDIT category
+app.put("/categories/:id", async (req, res) => {
+  const { id } = req.params;
+  const { name } = req.body;
+  if (!name || !name.trim()) return res.status(400).json({ error: "নাম দেওয়া আবশ্যক।" });
+
+  const { data, error } = await supabase
+    .from("categories")
+    .update({ name: name.trim() })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// DELETE category
+app.delete("/categories/:id", async (req, res) => {
+  const { id } = req.params;
+
+  const { error } = await supabase
+    .from("categories")
+    .delete()
+    .eq("id", id);
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ success: true });
+});
+
 /* =========================
    👥 CUSTOMERS API
 ========================= */
@@ -242,6 +272,36 @@ app.post("/customers", async (req, res) => {
 
   if (error) return res.status(500).json({ error: error.message });
   res.json(data);
+});
+
+// EDIT customer
+app.put("/customers/:id", async (req, res) => {
+  const { id } = req.params;
+  const { name, phone } = req.body;
+  if (!name || !name.trim()) return res.status(400).json({ error: "নাম দেওয়া আবশ্যক।" });
+
+  const { data, error } = await supabase
+    .from("customers")
+    .update({ name: name.trim(), phone: phone?.trim() || null })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// DELETE customer
+app.delete("/customers/:id", async (req, res) => {
+  const { id } = req.params;
+
+  const { error } = await supabase
+    .from("customers")
+    .delete()
+    .eq("id", id);
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ success: true });
 });
 
 // GET — customer ledger (Phase 2.2)
