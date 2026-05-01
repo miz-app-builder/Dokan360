@@ -197,12 +197,17 @@ export default function Topbar({ user, shopName, onLogout, setPage }) {
               {/* Menu items */}
               <div style={{ padding: "6px" }}>
                 {user?.role === "admin" && (
+                  <button className="topbar-drop-item" onClick={() => { setPage("admin"); setOpen(false); }}>
+                    ⚙️ Admin Panel
+                  </button>
+                )}
+                {user?.role === "admin" && (
                   <button className="topbar-drop-item" onClick={() => { setPage("notices"); setOpen(false); }}>
                     📢 Notice Panel
                   </button>
                 )}
                 <button className="topbar-drop-item" onClick={() => { setPage("settings"); setOpen(false); }}>
-                  ⚙️ Settings
+                  🔧 Settings
                 </button>
               </div>
 
