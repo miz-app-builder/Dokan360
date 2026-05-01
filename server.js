@@ -3,8 +3,6 @@ import cors from "cors";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { createClient } from "@supabase/supabase-js";
-import pg from "pg";
-const { Pool } = pg;
 
 const app = express();
 app.use(cors());
@@ -19,11 +17,6 @@ const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_ANON_KEY
 );
-
-/* =========================
-   REPLIT PostgreSQL (users table)
-========================= */
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
 /* =========================
    TEST ROUTE
@@ -61,18 +54,20 @@ const adminOnly = (req, res, next) => {
 
 // First-time setup — create admin if no users exist
 app.post("/auth/setup", async (req, res) => {
-  const { rows: existing } = await pool.query("SELECT id FROM users LIMIT 1");
-  if (existing.length > 0) {
+  const { data: existing } = await supabase.from("users").select("id").limit(1);
+  if (existing && existing.length > 0) {
     return res.status(400).json({ error: "Setup আগেই সম্পন্ন হয়েছে।" });
   }
   const { username, password } = req.body;
   if (!username || !password) return res.status(400).json({ error: "Username ও password দিন।" });
   const hash = await bcrypt.hash(password, 10);
-  const { rows } = await pool.query(
-    "INSERT INTO users (username, password_hash, role) VALUES ($1, $2, 'admin') RETURNING id, username, role",
-    [username.trim(), hash]
-  );
-  res.json({ success: true, user: rows[0], message: "Admin তৈরি হয়েছে! এখন লগইন করুন।" });
+  const { data, error } = await supabase
+    .from("users")
+    .insert([{ username: username.trim(), password_hash: hash, role: "admin" }])
+    .select("id, username, role")
+    .single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ success: true, user: data, message: "Admin তৈরি হয়েছে! এখন লগইন করুন।" });
 });
 
 // Login
@@ -80,12 +75,13 @@ app.post("/auth/login", async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) return res.status(400).json({ error: "Username ও password দিন।" });
 
-  const { rows } = await pool.query(
-    "SELECT id, username, password_hash, role FROM users WHERE username = $1",
-    [username.trim()]
-  );
-  const user = rows[0];
-  if (!user) return res.status(401).json({ error: "Username বা password ভুল।" });
+  const { data: user, error } = await supabase
+    .from("users")
+    .select("id, username, password_hash, role")
+    .eq("username", username.trim())
+    .single();
+
+  if (error || !user) return res.status(401).json({ error: "Username বা password ভুল।" });
 
   const valid = await bcrypt.compare(password, user.password_hash);
   if (!valid) return res.status(401).json({ error: "Username বা password ভুল।" });
@@ -648,10 +644,12 @@ app.post("/sales", async (req, res) => {
 
 // GET all users
 app.get("/users", adminOnly, async (req, res) => {
-  const { rows } = await pool.query(
-    "SELECT id, username, role, created_at FROM users ORDER BY created_at"
-  );
-  res.json(rows);
+  const { data, error } = await supabase
+    .from("users")
+    .select("id, username, role, created_at")
+    .order("created_at");
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
 });
 
 // POST — create user
@@ -661,16 +659,14 @@ app.post("/users", adminOnly, async (req, res) => {
   if (!["admin", "seller", "viewer"].includes(role)) return res.status(400).json({ error: "Role ভুল।" });
 
   const hash = await bcrypt.hash(password, 10);
-  try {
-    const { rows } = await pool.query(
-      "INSERT INTO users (username, password_hash, role) VALUES ($1, $2, $3) RETURNING id, username, role",
-      [username.trim(), hash, role]
-    );
-    res.json(rows[0]);
-  } catch (err) {
-    if (err.code === "23505") return res.status(400).json({ error: "এই username আগেই আছে।" });
-    res.status(500).json({ error: err.message });
-  }
+  const { data, error } = await supabase
+    .from("users")
+    .insert([{ username: username.trim(), password_hash: hash, role }])
+    .select("id, username, role")
+    .single();
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
 });
 
 // PUT — update user role or password
@@ -678,25 +674,20 @@ app.put("/users/:id", adminOnly, async (req, res) => {
   const { id } = req.params;
   const { role, password } = req.body;
 
-  let query, params;
-  if (role && password) {
-    const hash = await bcrypt.hash(password, 10);
-    query = "UPDATE users SET role=$1, password_hash=$2 WHERE id=$3 RETURNING id, username, role";
-    params = [role, hash, id];
-  } else if (role) {
-    query = "UPDATE users SET role=$1 WHERE id=$2 RETURNING id, username, role";
-    params = [role, id];
-  } else if (password) {
-    const hash = await bcrypt.hash(password, 10);
-    query = "UPDATE users SET password_hash=$1 WHERE id=$2 RETURNING id, username, role";
-    params = [hash, id];
-  } else {
-    return res.status(400).json({ error: "কিছু পরিবর্তন করুন।" });
-  }
+  const updates = {};
+  if (role) updates.role = role;
+  if (password) updates.password_hash = await bcrypt.hash(password, 10);
+  if (!Object.keys(updates).length) return res.status(400).json({ error: "কিছু পরিবর্তন করুন।" });
 
-  const { rows } = await pool.query(query, params);
-  if (!rows[0]) return res.status(404).json({ error: "User পাওয়া যায়নি।" });
-  res.json(rows[0]);
+  const { data, error } = await supabase
+    .from("users")
+    .update(updates)
+    .eq("id", id)
+    .select("id, username, role")
+    .single();
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
 });
 
 // DELETE — delete user (cannot delete self)
@@ -705,7 +696,8 @@ app.delete("/users/:id", adminOnly, async (req, res) => {
   if (parseInt(id) === req.user.id) {
     return res.status(400).json({ error: "নিজেকে delete করা যাবে না।" });
   }
-  await pool.query("DELETE FROM users WHERE id=$1", [id]);
+  const { error } = await supabase.from("users").delete().eq("id", id);
+  if (error) return res.status(500).json({ error: error.message });
   res.json({ success: true });
 });
 
