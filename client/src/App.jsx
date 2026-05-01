@@ -7,8 +7,28 @@ import Customers from "./pages/Customers";
 import CustomerLedger from "./pages/CustomerLedger";
 import Inventory from "./pages/Inventory";
 import Reports from "./pages/Reports";
+import Login from "./pages/Login";
+import AdminPanel from "./pages/AdminPanel";
 
 export default function App() {
+  // Auth state (Phase 5.6)
+  const [user, setUser] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("dokan360_user")); } catch { return null; }
+  });
+
+  const handleLogin = (loggedInUser) => {
+    setUser(loggedInUser);
+    setPage(loggedInUser.role === "viewer" ? "reports" : "pos");
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("dokan360_token");
+    localStorage.removeItem("dokan360_user");
+    setUser(null);
+    setPage("pos");
+    setCart([]);
+  };
+
   const [page, setPage] = useState("pos");
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -20,6 +40,9 @@ export default function App() {
   const [paidAmount, setPaidAmount] = useState("");
   const [ledgerCustomer, setLedgerCustomer] = useState(null);
   const barcodeRef = useRef(null);
+
+  // Show login if not authenticated
+  if (!user) return <Login onLogin={handleLogin} />;
 
   // =========================
   // LOAD PRODUCTS, CATEGORIES & CUSTOMERS
@@ -146,7 +169,12 @@ export default function App() {
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: "#f5f6fa" }}>
 
-      <Navbar activePage={page} setPage={(p) => { setPage(p); setLedgerCustomer(null); }} />
+      <Navbar
+        activePage={page}
+        setPage={(p) => { setPage(p); setLedgerCustomer(null); }}
+        user={user}
+        onLogout={handleLogout}
+      />
 
       {/* ===== PRODUCTS PAGE ===== */}
       {page === "products" && <Products />}
@@ -182,6 +210,13 @@ export default function App() {
       {page === "reports" && (
         <div style={{ flex: 1, overflowY: "auto" }}>
           <Reports />
+        </div>
+      )}
+
+      {/* ===== ADMIN PANEL ===== */}
+      {page === "admin" && user?.role === "admin" && (
+        <div style={{ flex: 1, overflowY: "auto" }}>
+          <AdminPanel currentUser={user} />
         </div>
       )}
 

@@ -1,10 +1,14 @@
 import express from "express";
 import cors from "cors";
+import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
 import { createClient } from "@supabase/supabase-js";
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+const JWT_SECRET = process.env.SESSION_SECRET || "dokan360_secret_key";
 
 /* =========================
    SUPABASE CONFIG
@@ -20,6 +24,87 @@ const supabase = createClient(
 app.get("/", (req, res) => {
   res.send("POS Backend Running ✅");
 });
+
+/* =========================
+   🔐 AUTH MIDDLEWARE (Phase 5.3)
+========================= */
+const authMiddleware = (req, res, next) => {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1];
+  if (!token) return res.status(401).json({ error: "লগইন করুন।" });
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch {
+    return res.status(401).json({ error: "Token মেয়াদ শেষ। আবার লগইন করুন।" });
+  }
+};
+
+const adminOnly = (req, res, next) => {
+  if (req.user?.role !== "admin") {
+    return res.status(403).json({ error: "শুধু Admin এই কাজ করতে পারবেন।" });
+  }
+  next();
+};
+
+/* =========================
+   🔐 AUTH ROUTES (Phase 5.2) — Public
+========================= */
+
+// First-time setup — create admin if no users exist
+app.post("/auth/setup", async (req, res) => {
+  const { data: existing } = await supabase.from("users").select("id").limit(1);
+  if (existing && existing.length > 0) {
+    return res.status(400).json({ error: "Setup আগেই সম্পন্ন হয়েছে।" });
+  }
+  const { username, password } = req.body;
+  if (!username || !password) return res.status(400).json({ error: "Username ও password দিন।" });
+  const hash = await bcrypt.hash(password, 10);
+  const { data, error } = await supabase
+    .from("users")
+    .insert([{ username: username.trim(), password_hash: hash, role: "admin" }])
+    .select("id, username, role")
+    .single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ success: true, user: data, message: "Admin তৈরি হয়েছে! এখন লগইন করুন।" });
+});
+
+// Login
+app.post("/auth/login", async (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) return res.status(400).json({ error: "Username ও password দিন।" });
+
+  const { data: user, error } = await supabase
+    .from("users")
+    .select("id, username, password_hash, role")
+    .eq("username", username.trim())
+    .single();
+
+  if (error || !user) return res.status(401).json({ error: "Username বা password ভুল।" });
+
+  const valid = await bcrypt.compare(password, user.password_hash);
+  if (!valid) return res.status(401).json({ error: "Username বা password ভুল।" });
+
+  const token = jwt.sign(
+    { id: user.id, username: user.username, role: user.role },
+    JWT_SECRET,
+    { expiresIn: "8h" }
+  );
+
+  res.json({ token, user: { id: user.id, username: user.username, role: user.role } });
+});
+
+// Check token / get current user
+app.get("/auth/me", authMiddleware, (req, res) => {
+  res.json({ user: req.user });
+});
+
+/* =========================
+   🔐 PROTECTED ROUTES START (Phase 5.4)
+   সব route এর নিচে authMiddleware apply হবে
+========================= */
+app.use(authMiddleware);
 
 /* =========================
    📦 PRODUCTS API
@@ -551,6 +636,68 @@ app.post("/sales", async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
+});
+
+/* =========================
+   👤 USER MANAGEMENT API (Phase 5.8) — Admin only
+========================= */
+
+// GET all users
+app.get("/users", adminOnly, async (req, res) => {
+  const { data, error } = await supabase
+    .from("users")
+    .select("id, username, role, created_at")
+    .order("created_at");
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// POST — create user
+app.post("/users", adminOnly, async (req, res) => {
+  const { username, password, role } = req.body;
+  if (!username || !password) return res.status(400).json({ error: "Username ও password দিন।" });
+  if (!["admin", "seller", "viewer"].includes(role)) return res.status(400).json({ error: "Role ভুল।" });
+
+  const hash = await bcrypt.hash(password, 10);
+  const { data, error } = await supabase
+    .from("users")
+    .insert([{ username: username.trim(), password_hash: hash, role }])
+    .select("id, username, role")
+    .single();
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// PUT — update user role or password
+app.put("/users/:id", adminOnly, async (req, res) => {
+  const { id } = req.params;
+  const { role, password } = req.body;
+
+  const updates = {};
+  if (role) updates.role = role;
+  if (password) updates.password_hash = await bcrypt.hash(password, 10);
+
+  const { data, error } = await supabase
+    .from("users")
+    .update(updates)
+    .eq("id", id)
+    .select("id, username, role")
+    .single();
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// DELETE — delete user (cannot delete self)
+app.delete("/users/:id", adminOnly, async (req, res) => {
+  const { id } = req.params;
+  if (parseInt(id) === req.user.id) {
+    return res.status(400).json({ error: "নিজেকে delete করা যাবে না।" });
+  }
+  const { error } = await supabase.from("users").delete().eq("id", id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ success: true });
 });
 
 /* =========================
