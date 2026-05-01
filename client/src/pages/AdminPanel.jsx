@@ -312,9 +312,28 @@ function UserProfile({ user, isNew, currentUser, onSaved, onBack, showMsg }) {
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) { showMsg("error", "❌ ছবি ২MB এর কম হতে হবে।"); return; }
+    if (file.size > 5 * 1024 * 1024) { showMsg("error", "❌ ছবি ৫MB এর কম হতে হবে।"); return; }
+
     const reader = new FileReader();
-    reader.onload = (ev) => { setPhoto(ev.target.result); setPhotoPreview(ev.target.result); };
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        // Compress to max 400x400
+        const MAX = 400;
+        let w = img.width, h = img.height;
+        if (w > h) { if (w > MAX) { h = h * MAX / w; w = MAX; } }
+        else        { if (h > MAX) { w = w * MAX / h; h = MAX; } }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, w, h);
+        const compressed = canvas.toDataURL("image/jpeg", 0.75);
+        setPhoto(compressed);
+        setPhotoPreview(compressed);
+      };
+      img.src = ev.target.result;
+    };
     reader.readAsDataURL(file);
   };
 
