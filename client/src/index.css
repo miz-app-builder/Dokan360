@@ -84,9 +84,9 @@ html, body {
 /* ===== PAGE CONTENT ===== */
 .page-content {
   flex: 1;
+  min-width: 0;
   height: 100vh;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;          /* never scroll the whole page */
   display: flex;
   flex-direction: column;
 }
@@ -102,9 +102,14 @@ html, body {
 }
 
 /* ===== PAGE WRAPPER ===== */
+/* all non-POS pages: fill height, scroll internally if content is long */
 .page-wrapper {
   padding: 24px;
   flex: 1;
+  min-height: 0;             /* allow flex shrink */
+  overflow-y: auto;          /* internal scroll */
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 /* ===== TABLES ===== */
