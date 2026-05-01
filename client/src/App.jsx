@@ -17,11 +17,11 @@ import { glass, T } from "./theme";
 const ACCENT  = "#6366f1";
 const ACCENT2 = "#8b5cf6";
 
-function AppInner() {
+function AppInner({ onUserChange }) {
   const [user, setUser] = useState(() => {
     try { return JSON.parse(localStorage.getItem("dokan360_user")); } catch { return null; }
   });
-  const { settings } = useSettings();
+  const { settings, loadSettings, loadUserDisplay } = useSettings();
 
   const [page, setPage]                     = useState("pos");
   const [perms, setPerms]                   = useState({});
@@ -39,6 +39,9 @@ function AppInner() {
 
   const handleLogin = (u) => {
     setUser(u);
+    onUserChange?.(u);
+    loadSettings();
+    loadUserDisplay();
     setPage(u.role === "viewer" ? "reports" : "pos");
   };
 
@@ -46,6 +49,7 @@ function AppInner() {
     localStorage.removeItem("dokan360_token");
     localStorage.removeItem("dokan360_user");
     setUser(null);
+    onUserChange?.(null);
     setPage("pos");
     setCart([]);
     setPerms({});
@@ -131,15 +135,17 @@ function AppInner() {
 
   const checkout = () => {
     if (cart.length === 0) { alert("Cart খালি আছে!"); return; }
-    if (paid > total) { alert("❌ Paid amount total এর চেয়ে বেশি হতে পারবে না।"); return; }
     API.post("/sales", {
       items: cart, total,
       customer_id: selectedCustomer?.id || null,
       paid_amount: paid || total,
     }).then(res => {
       if (res.data.success) {
+        const change = paid > total ? paid - total : 0;
         const msg = due > 0
-          ? `✅ Sale সম্পন্ন!\nSale ID: ${res.data.sale_id}\nবাকি: ${due} ${cur}`
+          ? `✅ Sale সম্পন্ন!\nSale ID: ${res.data.sale_id}\nবাকি: ${due.toFixed(2)} ${cur}`
+          : change > 0
+          ? `✅ Sale সম্পন্ন!\nSale ID: ${res.data.sale_id}\nফেরত দিন: ${change.toFixed(2)} ${cur}`
           : `✅ Sale সম্পন্ন!\nSale ID: ${res.data.sale_id}`;
         alert(msg);
         setCart([]); setPaidAmount(""); setSelectedCustomer(null); setSearch("");
@@ -521,7 +527,7 @@ export default function App() {
   });
   return (
     <SettingsProvider isLoggedIn={!!user}>
-      <AppInner />
+      <AppInner onUserChange={setUser} />
     </SettingsProvider>
   );
 }

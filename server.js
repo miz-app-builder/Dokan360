@@ -754,54 +754,78 @@ app.post("/sales", async (req, res) => {
   const { items, total, customer_id, paid_amount } = req.body;
 
   try {
-    // 1. Create sale record
+    // 1. Create sale record — try with sold_by first, fallback without
     const saleRow = { total_amount: total };
     if (customer_id) saleRow.customer_id = customer_id;
     saleRow.paid_amount = paid_amount || total;
     if (req.user?.id) saleRow.sold_by = req.user.id;
 
-    const { data: sale, error: saleError } = await supabase
+    let sale, saleError;
+    ({ data: sale, error: saleError } = await supabase
       .from("sales")
       .insert([saleRow])
       .select()
-      .single();
+      .single());
+
+    // If sold_by column doesn't exist yet, retry without it
+    if (saleError && saleError.message?.includes("sold_by")) {
+      const rowWithout = { ...saleRow };
+      delete rowWithout.sold_by;
+      ({ data: sale, error: saleError } = await supabase
+        .from("sales")
+        .insert([rowWithout])
+        .select()
+        .single());
+    }
 
     if (saleError) throw saleError;
 
+    // 2. Process each item
     for (let item of items) {
+      const pid = item.product_id || item.id;
+      const qty = item.qty;
+
       await supabase.from("sale_items").insert([{
         sale_id: sale.id,
-        product_id: item.product_id || item.id,
-        quantity: item.qty,
+        product_id: pid,
+        quantity: qty,
         price: item.sell_price || item.price,
       }]);
 
       await supabase.from("stock_logs").insert([{
-        product_id: item.product_id || item.id,
-        change_qty: -item.qty,
+        product_id: pid,
+        change_qty: -qty,
         type: "OUT",
       }]);
 
-      await supabase.rpc("decrease_stock", {
-        pid: item.product_id || item.id,
-        qty: item.qty,
-      });
+      // Try RPC first, fallback to direct update
+      const { error: rpcErr } = await supabase.rpc("decrease_stock", { pid, qty });
+      if (rpcErr) {
+        const { data: prod } = await supabase.from("products").select("stock").eq("id", pid).single();
+        const newStock = Math.max(0, (prod?.stock || 0) - qty);
+        await supabase.from("products").update({ stock: newStock }).eq("id", pid);
+      }
     }
 
     // 3. Handle due amount if customer selected
     const due = total - (paid_amount || total);
 
     if (customer_id && due > 0) {
-      await supabase.rpc("update_due", {
-        cid: customer_id,
-        new_due: due,
-      });
+      // Try RPC first, fallback to direct update
+      const { error: dueRpcErr } = await supabase.rpc("update_due", { cid: customer_id, new_due: due });
+      if (dueRpcErr) {
+        const { data: cust } = await supabase.from("customers").select("due_amount").eq("id", customer_id).single();
+        const newDue = (cust?.due_amount || 0) + due;
+        await supabase.from("customers").update({ due_amount: newDue }).eq("id", customer_id);
+      }
 
-      await supabase.from("payments").insert([{
-        customer_id,
-        sale_id: sale.id,
-        amount: paid_amount,
+      // Try inserting payment with sale_id, fallback without
+      const { error: payErr } = await supabase.from("payments").insert([{
+        customer_id, sale_id: sale.id, amount: paid_amount,
       }]);
+      if (payErr) {
+        await supabase.from("payments").insert([{ customer_id, amount: paid_amount }]);
+      }
     }
 
     res.json({
