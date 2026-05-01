@@ -30,8 +30,9 @@ export default function Navbar({ activePage, setPage, user, perms = {}, onLogout
     { key: "products",   icon: "📦", label: "Products"  },
     { key: "customers",  icon: "👥", label: "Customers" },
     { key: "reports",    icon: "📊", label: "Reports"   },
+    { key: "admin",      icon: "⚙️", label: "Admin",    adminOnly: true },
     { key: "settings",   icon: "🔧", label: "Settings"  },
-  ].filter(l => canView(l.key) || l.key === "settings");
+  ].filter(l => l.adminOnly ? isAdmin : (canView(l.key) || l.key === "settings"));
 
   const roleLabel = { admin: "👑 Admin", seller: "🛒 Seller", viewer: "👁️ Viewer" };
   const sideW = collapsed ? 64 : 240;
