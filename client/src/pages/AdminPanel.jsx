@@ -76,41 +76,47 @@ export default function AdminPanel({ currentUser }) {
   };
 
   return (
-    <div style={{ maxWidth: 1000, margin: "0 auto", padding: "20px 16px" }}>
-
-      <h2 style={{ margin: "0 0 20px", color: "#1e1b4b" }}>⚙️ Admin Panel</h2>
+    <div className="page-wrapper">
+      <div className="page-header">
+        <h2 className="page-title">⚙️ Admin Panel</h2>
+      </div>
 
       {/* Message */}
       {msg.text && (
         <div style={{
-          padding: "10px 16px", borderRadius: 8, marginBottom: 16,
-          background: msg.type === "success" ? "#f0fdf4" : "#fef2f2",
+          padding: "11px 18px", borderRadius: 12, marginBottom: 16,
+          background: msg.type === "success" ? "rgba(240,253,244,0.9)" : "rgba(254,242,242,0.9)",
           border: `1px solid ${msg.type === "success" ? "#86efac" : "#fca5a5"}`,
           color: msg.type === "success" ? "#16a34a" : "#ef4444",
-          fontWeight: "bold",
+          fontWeight: 700, fontSize: 14,
         }}>{msg.text}</div>
       )}
 
       {/* Tabs */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 24, borderBottom: "2px solid #e5e7eb", paddingBottom: 0 }}>
+      <div style={{ display: "flex", gap: 6, marginBottom: 24, flexWrap: "wrap" }}>
         {[
           { key: "users",       label: "👥 Users" },
           { key: "profile",     label: selectedUser ? `📋 ${selectedUser.username}` : "📋 Profile" },
           { key: "permissions", label: "🔐 Permissions" },
-        ].map(t => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            style={{
-              padding: "10px 20px", border: "none", borderRadius: "8px 8px 0 0",
-              fontWeight: "bold", fontSize: 14, cursor: "pointer",
-              background: tab === t.key ? "#4f46e5" : "#f3f4f6",
-              color: tab === t.key ? "#fff" : "#6b7280",
-              borderBottom: tab === t.key ? "2px solid #4f46e5" : "none",
-              marginBottom: -2,
-            }}
-          >{t.label}</button>
-        ))}
+        ].map(t => {
+          const active = tab === t.key;
+          return (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              style={{
+                padding: "9px 20px",
+                background: active ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "rgba(255,255,255,0.65)",
+                color: active ? "#fff" : "#374151",
+                border: "none", borderRadius: 10,
+                fontWeight: active ? 700 : 500, fontSize: 13,
+                cursor: "pointer", fontFamily: "inherit",
+                boxShadow: active ? "0 4px 12px rgba(99,102,241,0.35)" : "0 1px 4px rgba(0,0,0,0.06)",
+                backdropFilter: "blur(10px)",
+              }}
+            >{t.label}</button>
+          );
+        })}
       </div>
 
       {/* TAB: USER LIST */}
@@ -197,9 +203,10 @@ function UserList({ users, currentUser, onOpen, onNew, onDelete }) {
           style={inputStyle}
         />
         <button onClick={onNew} style={{
-          padding: "10px 20px", background: "#4f46e5", color: "#fff",
-          border: "none", borderRadius: 8, fontWeight: "bold",
+          padding: "10px 20px", background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "#fff",
+          border: "none", borderRadius: 10, fontWeight: 700,
           fontSize: 14, cursor: "pointer", whiteSpace: "nowrap", marginLeft: 12,
+          fontFamily: "inherit", boxShadow: "0 4px 12px rgba(99,102,241,0.35)",
         }}>
           ➕ নতুন User
         </button>
@@ -208,9 +215,11 @@ function UserList({ users, currentUser, onOpen, onNew, onDelete }) {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 14 }}>
         {filtered.map(u => (
           <div key={u.id} style={{
-            background: "#fff", border: "1px solid #e5e7eb",
-            borderRadius: 12, padding: 16,
-            boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+            background: "rgba(255,255,255,0.72)",
+            backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
+            border: "1px solid rgba(255,255,255,0.9)",
+            borderRadius: 16, padding: 16,
+            boxShadow: "0 4px 16px rgba(99,102,241,0.08)",
             display: "flex", flexDirection: "column", gap: 10,
           }}>
             {/* Top row: photo + info */}
@@ -258,7 +267,7 @@ function UserList({ users, currentUser, onOpen, onNew, onDelete }) {
             <div style={{ display: "flex", gap: 8 }}>
               <button
                 onClick={() => onOpen(u)}
-                style={{ flex: 1, padding: "7px 0", background: "#eef2ff", color: "#4f46e5", border: "1px solid #c7d2fe", borderRadius: 7, fontSize: 13, fontWeight: "bold", cursor: "pointer" }}
+                style={{ flex: 1, padding: "7px 0", background: "rgba(99,102,241,0.12)", color: "#6366f1", border: "1px solid rgba(99,102,241,0.25)", borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
               >
                 📋 Profile
               </button>
@@ -707,39 +716,52 @@ function Field({ label, value, onChange, type = "text", placeholder, options }) 
    STYLES
 ═══════════════════════════════════════ */
 const card = {
-  background: "#fff", border: "1px solid #e5e7eb",
-  borderRadius: 12, padding: 16,
-  boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
+  background: "rgba(255,255,255,0.72)",
+  backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
+  border: "1px solid rgba(255,255,255,0.9)",
+  borderRadius: 16, padding: 20,
+  boxShadow: "0 4px 24px rgba(99,102,241,0.08)",
 };
 const sectionLabel = {
-  display: "block", fontWeight: "bold",
-  color: "#374151", fontSize: 13,
+  display: "block", fontWeight: 700,
+  color: "#1e1b4b", fontSize: 13,
   marginBottom: 12, paddingBottom: 8,
-  borderBottom: "1px solid #f3f4f6",
+  borderBottom: "1px solid rgba(255,255,255,0.7)",
+  textTransform: "uppercase", letterSpacing: "0.4px",
 };
 const grid2 = {
-  display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10,
+  display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12,
 };
 const lbl = {
-  display: "block", fontSize: 12,
-  fontWeight: "bold", color: "#6b7280", marginBottom: 4,
+  display: "block", fontSize: 11,
+  fontWeight: 700, color: "#6b7280", marginBottom: 5,
+  textTransform: "uppercase", letterSpacing: "0.4px",
 };
 const inp = {
-  width: "100%", padding: "8px 10px",
-  border: "2px solid #e5e7eb", borderRadius: 7,
-  fontSize: 13, boxSizing: "border-box", outline: "none",
-  background: "#fafafa",
+  width: "100%", padding: "9px 12px",
+  background: "rgba(255,255,255,0.6)",
+  border: "1.5px solid rgba(255,255,255,0.85)",
+  borderRadius: 9, fontSize: 13,
+  boxSizing: "border-box", outline: "none",
+  color: "#1e1b4b", fontFamily: "inherit",
 };
 const inputStyle = {
-  padding: "9px 14px", border: "2px solid #e5e7eb",
-  borderRadius: 8, fontSize: 14, outline: "none", width: 260,
+  padding: "9px 14px",
+  background: "rgba(255,255,255,0.6)",
+  border: "1.5px solid rgba(255,255,255,0.85)",
+  borderRadius: 9, fontSize: 14, outline: "none", width: 260,
+  color: "#1e1b4b", fontFamily: "inherit",
 };
 const th = {
   padding: "11px 14px", textAlign: "center",
-  fontSize: 13, color: "#6b7280", fontWeight: "bold",
+  fontSize: 11, color: "#6b7280", fontWeight: 700,
+  textTransform: "uppercase", letterSpacing: "0.4px",
+  background: "rgba(255,255,255,0.4)",
+  borderBottom: "1px solid rgba(255,255,255,0.6)",
 };
 const btnStyle = (bg, color) => ({
   padding: "7px 14px", background: bg, color,
-  border: "none", borderRadius: 7,
-  fontSize: 13, fontWeight: "bold", cursor: "pointer",
+  border: "none", borderRadius: 8,
+  fontSize: 13, fontWeight: 700, cursor: "pointer",
+  fontFamily: "inherit",
 });

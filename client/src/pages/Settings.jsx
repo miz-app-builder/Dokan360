@@ -212,30 +212,37 @@ export default function Settings() {
   };
 
   return (
-    <div style={{ maxWidth: 900, margin: "24px auto", padding: "0 16px" }}>
-
-      <h2 style={{ margin: "0 0 20px", color: "#1e1b4b" }}>⚙️ Settings</h2>
+    <div className="page-wrapper">
+      <div className="page-header">
+        <h2 className="page-title">⚙️ Settings</h2>
+      </div>
 
       {msg.text && (
         <div style={{
-          padding: "10px 16px", borderRadius: 8, marginBottom: 16,
-          background: msg.type === "success" ? "#f0fdf4" : "#fef2f2",
+          padding: "11px 18px", borderRadius: 12, marginBottom: 16,
+          background: msg.type === "success" ? "rgba(240,253,244,0.9)" : "rgba(254,242,242,0.9)",
           border: `1px solid ${msg.type === "success" ? "#86efac" : "#fca5a5"}`,
           color: msg.type === "success" ? "#16a34a" : "#ef4444",
-          fontWeight: "bold",
+          fontWeight: 700, fontSize: 14,
         }}>{msg.text}</div>
       )}
 
       <div style={{ display: "flex", gap: 6, marginBottom: 24, flexWrap: "wrap" }}>
-        {TABS.filter(t => !t.adminOnly || isAdmin).map(t => (
-          <button key={t.key} onClick={() => setTab(t.key)} style={{
-            padding: "9px 18px",
-            background: tab === t.key ? "#4f46e5" : "#f3f4f6",
-            color: tab === t.key ? "#fff" : "#374151",
-            border: tab === t.key ? "none" : "1px solid #e5e7eb",
-            borderRadius: 8, fontWeight: "bold", fontSize: 14, cursor: "pointer",
-          }}>{t.label}</button>
-        ))}
+        {TABS.filter(t => !t.adminOnly || isAdmin).map(t => {
+          const active = tab === t.key;
+          return (
+            <button key={t.key} onClick={() => setTab(t.key)} style={{
+              padding: "9px 18px",
+              background: active ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "rgba(255,255,255,0.65)",
+              color: active ? "#fff" : "#374151",
+              border: "none", borderRadius: 10,
+              fontWeight: active ? 700 : 500, fontSize: 14,
+              cursor: "pointer", fontFamily: "inherit",
+              boxShadow: active ? "0 4px 12px rgba(99,102,241,0.35)" : "0 1px 4px rgba(0,0,0,0.06)",
+              backdropFilter: "blur(10px)",
+            }}>{t.label}</button>
+          );
+        })}
       </div>
 
       {/* ── SHOP INFO TAB ── */}
@@ -641,11 +648,13 @@ function ChoiceBtn({ active, onClick, children }) {
       onClick={onClick}
       style={{
         padding: "8px 18px",
-        background: active ? "#4f46e5" : "#f3f4f6",
+        background: active ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "rgba(255,255,255,0.65)",
         color: active ? "#fff" : "#374151",
-        border: active ? "2px solid #4f46e5" : "2px solid #e5e7eb",
-        borderRadius: 8, fontWeight: active ? "bold" : "normal",
-        fontSize: 14, cursor: "pointer",
+        border: "none", borderRadius: 9,
+        fontWeight: active ? 700 : 500, fontSize: 14,
+        cursor: "pointer", fontFamily: "inherit",
+        backdropFilter: "blur(10px)",
+        boxShadow: active ? "0 4px 12px rgba(99,102,241,0.30)" : "0 1px 4px rgba(0,0,0,0.06)",
       }}
     >{children}</button>
   );
@@ -657,7 +666,7 @@ function Toggle({ value, onChange }) {
       onClick={() => onChange(!value)}
       style={{
         width: 44, height: 24, borderRadius: 12,
-        background: value ? "#4f46e5" : "#d1d5db",
+        background: value ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "rgba(209,213,219,0.8)",
         position: "relative", cursor: "pointer", transition: "background 0.2s",
         flexShrink: 0,
       }}
@@ -665,6 +674,7 @@ function Toggle({ value, onChange }) {
       <div style={{
         width: 18, height: 18, borderRadius: "50%", background: "#fff",
         position: "absolute", top: 3, left: value ? 23 : 3, transition: "left 0.2s",
+        boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
       }} />
     </div>
   );
@@ -673,9 +683,12 @@ function Toggle({ value, onChange }) {
 function SaveBtn({ onClick, saving }) {
   return (
     <button onClick={onClick} disabled={saving} style={{
-      padding: "12px 0", background: saving ? "#d1d5db" : "#4f46e5",
-      color: "#fff", border: "none", borderRadius: 10,
-      fontSize: 15, fontWeight: "bold", cursor: saving ? "not-allowed" : "pointer",
+      padding: "12px 0",
+      background: saving ? "rgba(209,213,219,0.8)" : "linear-gradient(135deg,#6366f1,#8b5cf6)",
+      color: "#fff", border: "none", borderRadius: 12,
+      fontSize: 15, fontWeight: 700, cursor: saving ? "not-allowed" : "pointer",
+      fontFamily: "inherit",
+      boxShadow: saving ? "none" : "0 4px 14px rgba(99,102,241,0.35)",
     }}>
       {saving ? "⏳ সেভ হচ্ছে..." : "💾 Save করুন"}
     </button>
@@ -683,32 +696,40 @@ function SaveBtn({ onClick, saving }) {
 }
 
 const card = {
-  background: "#fff", border: "1px solid #e5e7eb",
-  borderRadius: 12, overflow: "hidden",
-  boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+  background: "rgba(255,255,255,0.72)",
+  backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
+  border: "1px solid rgba(255,255,255,0.9)",
+  borderRadius: 18, overflow: "hidden",
+  boxShadow: "0 4px 24px rgba(99,102,241,0.08)",
 };
 const cardHdr = {
-  padding: "14px 20px", background: "#f9fafb",
-  borderBottom: "1px solid #e5e7eb",
+  padding: "15px 22px", background: "rgba(255,255,255,0.5)",
+  borderBottom: "1px solid rgba(255,255,255,0.6)",
   display: "flex", justifyContent: "space-between", alignItems: "center",
+  fontWeight: 700, color: "#1e1b4b", fontSize: 15,
 };
 const inputStyle = {
   width: "100%", padding: "9px 12px",
-  border: "2px solid #e5e7eb", borderRadius: 8,
-  fontSize: 14, boxSizing: "border-box", outline: "none",
+  background: "rgba(255,255,255,0.6)",
+  border: "1.5px solid rgba(255,255,255,0.85)",
+  borderRadius: 9, fontSize: 14, boxSizing: "border-box", outline: "none",
+  color: "#1e1b4b", fontFamily: "inherit",
 };
-const lbl = { display: "block", fontSize: 12, fontWeight: "bold", color: "#374151", marginBottom: 5 };
-const emptyTxt = { textAlign: "center", color: "#9ca3af", padding: 32, margin: 0 };
+const lbl = { display: "block", fontSize: 11, fontWeight: 700, color: "#6b7280", marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.4px" };
+const emptyTxt = { textAlign: "center", color: "#9ca3af", padding: 36, margin: 0 };
 const actionBtn = {
-  padding: "10px 20px", background: "#4f46e5", color: "#fff",
-  border: "none", borderRadius: 8, fontWeight: "bold",
-  fontSize: 14, cursor: "pointer",
+  padding: "10px 20px", background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "#fff",
+  border: "none", borderRadius: 10, fontWeight: 700,
+  fontSize: 14, cursor: "pointer", fontFamily: "inherit",
+  boxShadow: "0 4px 12px rgba(99,102,241,0.35)",
 };
 const editBtn = {
-  padding: "6px 14px", background: "#eef2ff", color: "#4f46e5",
-  border: "1px solid #c7d2fe", borderRadius: 7, cursor: "pointer", fontWeight: "bold",
+  padding: "6px 14px", background: "rgba(99,102,241,0.12)", color: "#6366f1",
+  border: "1px solid rgba(99,102,241,0.25)", borderRadius: 8, cursor: "pointer", fontWeight: 700,
+  fontFamily: "inherit",
 };
 const dangerBtn = {
-  padding: "6px 14px", background: "#fef2f2", color: "#ef4444",
-  border: "1px solid #fca5a5", borderRadius: 7, cursor: "pointer", fontWeight: "bold",
+  padding: "6px 14px", background: "rgba(239,68,68,0.10)", color: "#ef4444",
+  border: "1px solid rgba(239,68,68,0.3)", borderRadius: 8, cursor: "pointer", fontWeight: 700,
+  fontFamily: "inherit",
 };

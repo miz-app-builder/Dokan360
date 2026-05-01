@@ -1,21 +1,36 @@
 import { useState } from "react";
 import { API } from "../api";
 
-export default function Login({ onLogin }) {
-  const [form, setForm] = useState({ username: "", password: "" });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+const ACCENT  = "#6366f1";
+const ACCENT2 = "#8b5cf6";
 
-  // Setup mode — first time admin create
+const inp = {
+  width: "100%", padding: "11px 14px",
+  background: "rgba(255,255,255,0.6)",
+  border: "1.5px solid rgba(255,255,255,0.85)",
+  borderRadius: 12, fontSize: 14, fontFamily: "inherit",
+  color: "#1e1b4b", outline: "none", boxSizing: "border-box",
+  transition: "border-color 0.15s, box-shadow 0.15s",
+};
+
+const lbl = {
+  display: "block", fontSize: 12, fontWeight: 700,
+  color: "#6b7280", marginBottom: 6,
+  textTransform: "uppercase", letterSpacing: "0.4px",
+};
+
+export default function Login({ onLogin }) {
+  const [form, setForm]           = useState({ username: "", password: "" });
+  const [loading, setLoading]     = useState(false);
+  const [error, setError]         = useState("");
   const [showSetup, setShowSetup] = useState(false);
   const [setupForm, setSetupForm] = useState({ username: "", password: "", confirm: "" });
   const [setupLoading, setSetupLoading] = useState(false);
-  const [setupMsg, setSetupMsg] = useState({ type: "", text: "" });
+  const [setupMsg, setSetupMsg]   = useState({ type: "", text: "" });
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setError("");
-    setLoading(true);
+    setError(""); setLoading(true);
     try {
       const res = await API.post("/auth/login", form);
       localStorage.setItem("dokan360_token", res.data.token);
@@ -36,10 +51,7 @@ export default function Login({ onLogin }) {
     }
     setSetupLoading(true);
     try {
-      await API.post("/auth/setup", {
-        username: setupForm.username,
-        password: setupForm.password,
-      });
+      await API.post("/auth/setup", { username: setupForm.username, password: setupForm.password });
       setSetupMsg({ type: "success", text: "✅ Admin তৈরি হয়েছে! এখন লগইন করুন।" });
       setTimeout(() => {
         setShowSetup(false);
@@ -55,159 +67,131 @@ export default function Login({ onLogin }) {
 
   return (
     <div style={{
-      minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
-      background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)",
+      minHeight: "100vh",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      background: "linear-gradient(135deg, #ede9fe 0%, #e0e7ff 40%, #dbeafe 80%, #f0fdf4 100%)",
+      padding: 16,
     }}>
+      {/* Decorative blobs */}
+      <div style={{ position: "fixed", top: -100, left: -100, width: 400, height: 400, borderRadius: "50%", background: "rgba(139,92,246,0.15)", filter: "blur(80px)", pointerEvents: "none" }} />
+      <div style={{ position: "fixed", bottom: -80, right: -80, width: 350, height: 350, borderRadius: "50%", background: "rgba(99,102,241,0.12)", filter: "blur(80px)", pointerEvents: "none" }} />
+
       <div style={{
-        background: "#fff", borderRadius: 16, padding: 40,
         width: "100%", maxWidth: 420,
-        boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
+        background: "rgba(255,255,255,0.72)",
+        backdropFilter: "blur(24px)",
+        WebkitBackdropFilter: "blur(24px)",
+        border: "1px solid rgba(255,255,255,0.9)",
+        borderRadius: 24,
+        padding: 36,
+        boxShadow: "0 20px 60px rgba(99,102,241,0.15), 0 4px 16px rgba(0,0,0,0.06)",
+        position: "relative", zIndex: 1,
       }}>
         {/* Logo */}
-        <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <div style={{ fontSize: 40, marginBottom: 8 }}>🏪</div>
-          <h1 style={{ margin: 0, color: "#1e1b4b", fontSize: 26, fontWeight: "bold" }}>Dokan360</h1>
-          <p style={{ margin: "6px 0 0", color: "#6b7280", fontSize: 14 }}>
+        <div style={{ textAlign: "center", marginBottom: 28 }}>
+          <div style={{
+            width: 64, height: 64, borderRadius: 20, margin: "0 auto 14px",
+            background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT2})`,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 30, boxShadow: `0 8px 24px ${ACCENT}40`,
+          }}>🏪</div>
+          <h1 style={{ margin: "0 0 6px", color: "#1e1b4b", fontSize: 26, fontWeight: 900 }}>Dokan360</h1>
+          <p style={{ margin: 0, color: "#9ca3af", fontSize: 13 }}>
             {showSetup ? "প্রথমবার Admin তৈরি করুন" : "আপনার account এ লগইন করুন"}
           </p>
         </div>
 
-        {/* LOGIN FORM */}
+        {/* LOGIN */}
         {!showSetup && (
           <form onSubmit={handleLogin}>
             {error && (
               <div style={{
-                background: "#fef2f2", border: "1px solid #fca5a5",
-                color: "#ef4444", borderRadius: 8, padding: "10px 14px",
-                marginBottom: 16, fontWeight: "bold", fontSize: 14,
-              }}>
-                ❌ {error}
-              </div>
+                background: "rgba(254,242,242,0.9)", border: "1px solid #fca5a5",
+                color: "#dc2626", borderRadius: 12, padding: "10px 14px",
+                marginBottom: 16, fontWeight: 600, fontSize: 13,
+              }}>❌ {error}</div>
             )}
-            <div style={{ marginBottom: 16 }}>
-              <label style={labelStyle}>Username</label>
-              <input
-                type="text"
-                placeholder="admin"
-                value={form.username}
+            <div style={{ marginBottom: 14 }}>
+              <label style={lbl}>Username</label>
+              <input type="text" placeholder="admin" value={form.username}
                 onChange={e => setForm({ ...form, username: e.target.value })}
-                style={inputStyle}
-                required
-                autoFocus
+                style={inp} required autoFocus
+                onFocus={e => { e.target.style.borderColor = ACCENT; e.target.style.boxShadow = "0 0 0 3px rgba(99,102,241,0.12)"; }}
+                onBlur={e => { e.target.style.borderColor = "rgba(255,255,255,0.85)"; e.target.style.boxShadow = "none"; }}
               />
             </div>
-            <div style={{ marginBottom: 24 }}>
-              <label style={labelStyle}>Password</label>
-              <input
-                type="password"
-                placeholder="••••••••"
-                value={form.password}
+            <div style={{ marginBottom: 22 }}>
+              <label style={lbl}>Password</label>
+              <input type="password" placeholder="••••••••" value={form.password}
                 onChange={e => setForm({ ...form, password: e.target.value })}
-                style={inputStyle}
-                required
+                style={inp} required
+                onFocus={e => { e.target.style.borderColor = ACCENT; e.target.style.boxShadow = "0 0 0 3px rgba(99,102,241,0.12)"; }}
+                onBlur={e => { e.target.style.borderColor = "rgba(255,255,255,0.85)"; e.target.style.boxShadow = "none"; }}
               />
             </div>
-            <button
-              type="submit"
-              disabled={loading}
-              style={{
-                width: "100%", padding: "12px",
-                background: loading ? "#d1d5db" : "#4f46e5",
-                color: "#fff", border: "none", borderRadius: 8,
-                fontWeight: "bold", fontSize: 16,
-                cursor: loading ? "not-allowed" : "pointer",
-              }}
-            >
+            <button type="submit" disabled={loading} style={{
+              width: "100%", padding: "13px",
+              background: loading ? "rgba(209,213,219,0.8)" : `linear-gradient(135deg, ${ACCENT}, ${ACCENT2})`,
+              color: "#fff", border: "none", borderRadius: 12,
+              fontWeight: 700, fontSize: 15, cursor: loading ? "not-allowed" : "pointer",
+              fontFamily: "inherit",
+              boxShadow: loading ? "none" : `0 6px 20px ${ACCENT}40`,
+              transition: "all 0.15s",
+            }}>
               {loading ? "লগইন হচ্ছে..." : "🔐 লগইন করুন"}
             </button>
-
-            <div style={{ textAlign: "center", marginTop: 20 }}>
-              <button
-                type="button"
-                onClick={() => setShowSetup(true)}
-                style={{
-                  background: "none", border: "none",
-                  color: "#4f46e5", fontSize: 13, cursor: "pointer",
-                  textDecoration: "underline",
-                }}
-              >
-                প্রথমবার? Admin account তৈরি করুন
-              </button>
+            <div style={{ textAlign: "center", marginTop: 18 }}>
+              <button type="button" onClick={() => setShowSetup(true)} style={{
+                background: "none", border: "none",
+                color: ACCENT, fontSize: 13, cursor: "pointer",
+                fontFamily: "inherit", fontWeight: 600, textDecoration: "underline",
+              }}>প্রথমবার? Admin account তৈরি করুন</button>
             </div>
           </form>
         )}
 
-        {/* FIRST-TIME SETUP FORM */}
+        {/* SETUP */}
         {showSetup && (
           <form onSubmit={handleSetup}>
             {setupMsg.text && (
               <div style={{
-                background: setupMsg.type === "success" ? "#f0fdf4" : "#fef2f2",
+                background: setupMsg.type === "success" ? "rgba(240,253,244,0.9)" : "rgba(254,242,242,0.9)",
                 border: `1px solid ${setupMsg.type === "success" ? "#86efac" : "#fca5a5"}`,
-                color: setupMsg.type === "success" ? "#16a34a" : "#ef4444",
-                borderRadius: 8, padding: "10px 14px",
-                marginBottom: 16, fontWeight: "bold", fontSize: 14,
-              }}>
-                {setupMsg.text}
-              </div>
+                color: setupMsg.type === "success" ? "#15803d" : "#dc2626",
+                borderRadius: 12, padding: "10px 14px",
+                marginBottom: 16, fontWeight: 600, fontSize: 13,
+              }}>{setupMsg.text}</div>
             )}
-            <div style={{ marginBottom: 14 }}>
-              <label style={labelStyle}>Admin Username</label>
-              <input
-                placeholder="admin"
-                value={setupForm.username}
-                onChange={e => setSetupForm({ ...setupForm, username: e.target.value })}
-                style={inputStyle}
-                required
-                autoFocus
-              />
-            </div>
-            <div style={{ marginBottom: 14 }}>
-              <label style={labelStyle}>Password</label>
-              <input
-                type="password"
-                placeholder="শক্তিশালী password দিন"
-                value={setupForm.password}
-                onChange={e => setSetupForm({ ...setupForm, password: e.target.value })}
-                style={inputStyle}
-                required
-              />
-            </div>
-            <div style={{ marginBottom: 24 }}>
-              <label style={labelStyle}>Password নিশ্চিত করুন</label>
-              <input
-                type="password"
-                placeholder="আবার লিখুন"
-                value={setupForm.confirm}
-                onChange={e => setSetupForm({ ...setupForm, confirm: e.target.value })}
-                style={inputStyle}
-                required
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={setupLoading}
-              style={{
-                width: "100%", padding: "12px",
-                background: setupLoading ? "#d1d5db" : "#16a34a",
-                color: "#fff", border: "none", borderRadius: 8,
-                fontWeight: "bold", fontSize: 16,
-                cursor: setupLoading ? "not-allowed" : "pointer",
-              }}
-            >
+            {[
+              { label: "Admin Username", name: "username", type: "text", ph: "admin" },
+              { label: "Password", name: "password", type: "password", ph: "শক্তিশালী password" },
+              { label: "Password নিশ্চিত করুন", name: "confirm", type: "password", ph: "আবার লিখুন" },
+            ].map((f, i) => (
+              <div key={f.name} style={{ marginBottom: i < 2 ? 14 : 22 }}>
+                <label style={lbl}>{f.label}</label>
+                <input type={f.type} placeholder={f.ph}
+                  value={setupForm[f.name]}
+                  onChange={e => setSetupForm({ ...setupForm, [f.name]: e.target.value })}
+                  style={inp} required autoFocus={i === 0}
+                  onFocus={e => { e.target.style.borderColor = ACCENT; e.target.style.boxShadow = "0 0 0 3px rgba(99,102,241,0.12)"; }}
+                  onBlur={e => { e.target.style.borderColor = "rgba(255,255,255,0.85)"; e.target.style.boxShadow = "none"; }}
+                />
+              </div>
+            ))}
+            <button type="submit" disabled={setupLoading} style={{
+              width: "100%", padding: "13px",
+              background: setupLoading ? "rgba(209,213,219,0.8)" : "linear-gradient(135deg, #22c55e, #16a34a)",
+              color: "#fff", border: "none", borderRadius: 12,
+              fontWeight: 700, fontSize: 15, cursor: setupLoading ? "not-allowed" : "pointer",
+              fontFamily: "inherit", boxShadow: setupLoading ? "none" : "0 6px 20px rgba(34,197,94,0.35)",
+            }}>
               {setupLoading ? "তৈরি হচ্ছে..." : "✅ Admin তৈরি করুন"}
             </button>
             <div style={{ textAlign: "center", marginTop: 16 }}>
-              <button
-                type="button"
-                onClick={() => setShowSetup(false)}
-                style={{
-                  background: "none", border: "none",
-                  color: "#6b7280", fontSize: 13, cursor: "pointer",
-                }}
-              >
-                ← লগইনে ফিরুন
-              </button>
+              <button type="button" onClick={() => setShowSetup(false)} style={{
+                background: "none", border: "none",
+                color: "#6b7280", fontSize: 13, cursor: "pointer", fontFamily: "inherit",
+              }}>← লগইনে ফিরুন</button>
             </div>
           </form>
         )}
@@ -215,13 +199,3 @@ export default function Login({ onLogin }) {
     </div>
   );
 }
-
-const labelStyle = {
-  display: "block", fontSize: 13, fontWeight: "bold",
-  color: "#374151", marginBottom: 6,
-};
-const inputStyle = {
-  width: "100%", padding: "10px 14px",
-  border: "2px solid #e5e7eb", borderRadius: 8,
-  fontSize: 14, boxSizing: "border-box", outline: "none",
-};

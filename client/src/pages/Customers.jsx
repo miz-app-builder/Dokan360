@@ -1,22 +1,27 @@
 import { useEffect, useState } from "react";
 import { API } from "../api";
+import { glass, T, th, td, primaryBtn, editBtn, deleteBtn, successBtn, secondaryBtn, msgBox } from "../theme";
+
+const ACCENT = "#6366f1";
+const inpStyle = {
+  padding: "7px 10px",
+  background: "rgba(255,255,255,0.7)",
+  border: "1.5px solid rgba(255,255,255,0.85)",
+  borderRadius: 8, fontSize: 13, fontFamily: "inherit",
+  color: T.text1, outline: "none", boxSizing: "border-box",
+};
 
 export default function Customers({ onViewLedger }) {
-  const [customers, setCustomers] = useState([]);
-  const [form, setForm] = useState({ name: "", phone: "" });
-  const [loading, setLoading] = useState(false);
-  const [msg, setMsg] = useState({ type: "", text: "" });
-  const [search, setSearch] = useState("");
-
-  // Edit/Delete state
-  const [editingId, setEditingId] = useState(null);
-  const [editForm, setEditForm] = useState({ name: "", phone: "" });
+  const [customers,  setCustomers]  = useState([]);
+  const [form,       setForm]       = useState({ name: "", phone: "" });
+  const [loading,    setLoading]    = useState(false);
+  const [msg,        setMsg]        = useState({ type: "", text: "" });
+  const [search,     setSearch]     = useState("");
+  const [editingId,  setEditingId]  = useState(null);
+  const [editForm,   setEditForm]   = useState({ name: "", phone: "" });
   const [deletingId, setDeletingId] = useState(null);
 
-  const load = () => {
-    API.get("/customers").then(r => setCustomers(r.data)).catch(console.error);
-  };
-
+  const load = () => API.get("/customers").then(r => setCustomers(r.data)).catch(console.error);
   useEffect(() => { load(); }, []);
 
   const showMsg = (type, text) => {
@@ -24,267 +29,199 @@ export default function Customers({ onViewLedger }) {
     setTimeout(() => setMsg({ type: "", text: "" }), 3500);
   };
 
-  // ADD
   const handleAdd = async (e) => {
     e.preventDefault();
     if (!form.name.trim()) { showMsg("error", "নাম দেওয়া আবশ্যক।"); return; }
     setLoading(true);
     try {
       await API.post("/customers", { name: form.name.trim(), phone: form.phone.trim() });
-      showMsg("success", `✅ "${form.name.trim()}" সফলভাবে যোগ হয়েছে!`);
-      setForm({ name: "", phone: "" });
-      load();
+      showMsg("success", `✅ "${form.name.trim()}" যোগ হয়েছে!`);
+      setForm({ name: "", phone: "" }); load();
     } catch (err) {
       showMsg("error", "❌ " + (err.response?.data?.error || "সমস্যা হয়েছে।"));
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
-  // START EDIT
-  const startEdit = (c) => {
-    setEditingId(c.id);
-    setEditForm({ name: c.name, phone: c.phone || "" });
-    setDeletingId(null);
-  };
-
-  // SAVE EDIT
   const handleEdit = async (id) => {
     if (!editForm.name.trim()) return;
     try {
       await API.put(`/customers/${id}`, { name: editForm.name.trim(), phone: editForm.phone.trim() });
-      showMsg("success", "✅ Customer সফলভাবে আপডেট হয়েছে!");
-      setEditingId(null);
-      load();
+      showMsg("success", "✅ Customer আপডেট হয়েছে!");
+      setEditingId(null); load();
     } catch (err) {
-      showMsg("error", "❌ " + (err.response?.data?.error || "আপডেট করতে সমস্যা হয়েছে।"));
+      showMsg("error", "❌ " + (err.response?.data?.error || "আপডেট করতে সমস্যা।"));
     }
   };
 
-  // DELETE
   const handleDelete = async (id, name) => {
     try {
       await API.delete(`/customers/${id}`);
       showMsg("success", `✅ "${name}" মুছে ফেলা হয়েছে।`);
-      setDeletingId(null);
-      load();
+      setDeletingId(null); load();
     } catch (err) {
-      showMsg("error", "❌ " + (err.response?.data?.error || "মুছতে সমস্যা হয়েছে।"));
+      showMsg("error", "❌ " + (err.response?.data?.error || "মুছতে সমস্যা।"));
       setDeletingId(null);
     }
   };
 
-  const filtered = customers.filter(c =>
+  const filtered   = customers.filter(c =>
     c.name.toLowerCase().includes(search.toLowerCase()) ||
     (c.phone && c.phone.includes(search))
   );
-
   const totalDue = customers.reduce((s, c) => s + (c.due_amount || 0), 0);
 
   return (
-    <div style={{ maxWidth: 960, margin: "24px auto", padding: "0 16px" }}>
-
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-        <h2 style={{ margin: 0, color: "#1e1b4b" }}>👥 Customers</h2>
+    <div className="page-wrapper">
+      {/* Header */}
+      <div className="page-header">
+        <h2 className="page-title">👥 Customers</h2>
         {totalDue > 0 && (
           <div style={{
-            background: "#fef2f2", border: "1px solid #fca5a5",
-            borderRadius: 8, padding: "8px 16px",
+            background: "rgba(254,242,242,0.9)", border: "1px solid #fca5a5",
+            borderRadius: 12, padding: "8px 16px",
           }}>
-            <span style={{ color: "#ef4444", fontWeight: "bold" }}>
+            <span style={{ color: "#ef4444", fontWeight: 700, fontSize: 14 }}>
               মোট বাকি: {totalDue.toFixed(2)} ৳
             </span>
           </div>
         )}
       </div>
 
-      {msg.text && (
-        <div style={{
-          padding: "10px 16px", borderRadius: 8, marginBottom: 16,
-          background: msg.type === "success" ? "#f0fdf4" : "#fef2f2",
-          border: `1px solid ${msg.type === "success" ? "#86efac" : "#fca5a5"}`,
-          color: msg.type === "success" ? "#16a34a" : "#ef4444",
-          fontWeight: "bold",
-        }}>
-          {msg.text}
-        </div>
-      )}
+      {msg.text && <div style={msgBox(msg.type)}>{msg.text}</div>}
 
-      {/* ADD FORM */}
-      <div style={{
-        background: "#fff", border: "1px solid #e5e7eb",
-        borderRadius: 12, padding: 24, marginBottom: 24,
-        boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-      }}>
-        <h3 style={{ margin: "0 0 16px", color: "#374151" }}>➕ নতুন Customer যোগ করুন</h3>
+      {/* Add Form */}
+      <div style={{ ...glass({ borderRadius: 18, padding: 20, marginBottom: 20 }) }}>
+        <h3 style={{ margin: "0 0 14px", color: T.text1, fontWeight: 800, fontSize: 15 }}>➕ নতুন Customer যোগ</h3>
         <form onSubmit={handleAdd}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: 12, alignItems: "end" }}>
             <div>
-              <label style={labelStyle}>নাম *</label>
-              <input
-                placeholder="Customer এর নাম"
-                value={form.name}
+              <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: T.text3, marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.4px" }}>নাম *</label>
+              <input placeholder="Customer এর নাম" value={form.name}
                 onChange={e => setForm({ ...form, name: e.target.value })}
-                style={inputStyle}
+                style={{
+                  width: "100%", padding: "10px 14px",
+                  background: "rgba(255,255,255,0.6)",
+                  border: "1.5px solid rgba(255,255,255,0.85)",
+                  borderRadius: 10, fontSize: 14, fontFamily: "inherit",
+                  color: T.text1, outline: "none", boxSizing: "border-box",
+                }}
+                onFocus={e => { e.target.style.borderColor = ACCENT; e.target.style.boxShadow = "0 0 0 3px rgba(99,102,241,0.12)"; }}
+                onBlur={e => { e.target.style.borderColor = "rgba(255,255,255,0.85)"; e.target.style.boxShadow = "none"; }}
                 required
               />
             </div>
             <div>
-              <label style={labelStyle}>ফোন নম্বর</label>
-              <input
-                placeholder="01XXXXXXXXX"
-                value={form.phone}
+              <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: T.text3, marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.4px" }}>ফোন নম্বর</label>
+              <input placeholder="01XXXXXXXXX" value={form.phone}
                 onChange={e => setForm({ ...form, phone: e.target.value })}
-                style={inputStyle}
+                style={{
+                  width: "100%", padding: "10px 14px",
+                  background: "rgba(255,255,255,0.6)",
+                  border: "1.5px solid rgba(255,255,255,0.85)",
+                  borderRadius: 10, fontSize: 14, fontFamily: "inherit",
+                  color: T.text1, outline: "none", boxSizing: "border-box",
+                }}
+                onFocus={e => { e.target.style.borderColor = ACCENT; e.target.style.boxShadow = "0 0 0 3px rgba(99,102,241,0.12)"; }}
+                onBlur={e => { e.target.style.borderColor = "rgba(255,255,255,0.85)"; e.target.style.boxShadow = "none"; }}
               />
             </div>
-            <button
-              type="submit"
-              disabled={loading}
-              style={{
-                padding: "10px 20px",
-                background: loading ? "#d1d5db" : "#4f46e5",
-                color: "#fff", border: "none", borderRadius: 8,
-                fontWeight: "bold", fontSize: 14,
-                cursor: loading ? "not-allowed" : "pointer",
-                whiteSpace: "nowrap",
-              }}
-            >
+            <button type="submit" disabled={loading} style={{ ...primaryBtn, opacity: loading ? 0.6 : 1, cursor: loading ? "not-allowed" : "pointer" }}>
               {loading ? "যোগ হচ্ছে..." : "✅ যোগ করুন"}
             </button>
           </div>
         </form>
       </div>
 
-      {/* SEARCH */}
-      <input
-        type="text"
-        placeholder="🔍 নাম বা ফোন দিয়ে খুঁজুন..."
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-        style={{ ...inputStyle, marginBottom: 16, maxWidth: 320 }}
-      />
+      {/* Search */}
+      <div style={{ ...glass({ borderRadius: 12, padding: "0 14px", marginBottom: 16, display: "inline-flex", alignItems: "center", gap: 6 }) }}>
+        <span style={{ color: T.text4 }}>🔍</span>
+        <input type="text" placeholder="নাম বা ফোন দিয়ে খুঁজুন..."
+          value={search} onChange={e => setSearch(e.target.value)}
+          style={{ background: "none", border: "none", outline: "none", padding: "10px 0", fontSize: 14, color: T.text1, width: 220, fontFamily: "inherit" }}
+        />
+      </div>
 
-      {/* CUSTOMER LIST */}
-      <div style={{
-        background: "#fff", border: "1px solid #e5e7eb",
-        borderRadius: 12, overflow: "hidden",
-        boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-      }}>
+      {/* Table */}
+      <div style={{ ...glass({ borderRadius: 18, overflow: "hidden", padding: 0 }) }}>
         <div style={{
-          padding: "12px 20px", background: "#f9fafb",
-          borderBottom: "1px solid #e5e7eb",
+          padding: "14px 20px",
+          background: "rgba(255,255,255,0.5)",
+          borderBottom: "1px solid rgba(255,255,255,0.6)",
           display: "flex", justifyContent: "space-between", alignItems: "center",
         }}>
-          <b style={{ color: "#374151" }}>সব Customers</b>
-          <span style={{ background: "#4f46e5", color: "#fff", borderRadius: 20, padding: "2px 10px", fontSize: 13 }}>
+          <b style={{ color: T.text1, fontSize: 15 }}>সব Customers</b>
+          <span style={{ background: `${ACCENT}15`, color: ACCENT, border: `1px solid ${ACCENT}30`, borderRadius: 20, padding: "3px 12px", fontSize: 12, fontWeight: 700 }}>
             {filtered.length} জন
           </span>
         </div>
 
         {filtered.length === 0 ? (
-          <p style={{ textAlign: "center", color: "#9ca3af", padding: 32 }}>
-            কোনো customer পাওয়া যায়নি।
-          </p>
+          <div style={{ textAlign: "center", padding: 48 }}>
+            <div style={{ fontSize: 36, marginBottom: 8 }}>👥</div>
+            <p style={{ color: T.text4 }}>কোনো customer পাওয়া যায়নি।</p>
+          </div>
         ) : (
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
-                <tr style={{ background: "#f3f4f6" }}>
-                  {["#", "নাম", "ফোন", "বাকি", "Ledger", "Action"].map(h => (
-                    <th key={h} style={th}>{h}</th>
-                  ))}
+                <tr>
+                  {["#", "নাম", "ফোন", "বাকি", "Ledger", "Action"].map(h => <th key={h} style={th}>{h}</th>)}
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((c, i) => (
-                  <tr
-                    key={c.id}
-                    style={{ borderBottom: "1px solid #f3f4f6" }}
-                    onMouseEnter={e => e.currentTarget.style.background = "#f9fafb"}
-                    onMouseLeave={e => e.currentTarget.style.background = "#fff"}
+                  <tr key={c.id}
+                    onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.4)"}
+                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                   >
-                    <td style={td}>{i + 1}</td>
+                    <td style={td}><span style={{ color: T.text4, fontSize: 12 }}>{i + 1}</span></td>
 
-                    {/* Name cell */}
-                    <td style={{ ...td, fontWeight: "bold" }}>
-                      {editingId === c.id ? (
-                        <input
-                          value={editForm.name}
-                          onChange={e => setEditForm({ ...editForm, name: e.target.value })}
-                          style={{ ...inputStyle, width: 140 }}
-                          autoFocus
-                        />
-                      ) : (
-                        <>👤 {c.name}</>
-                      )}
+                    <td style={{ ...td, fontWeight: 700, color: T.text1 }}>
+                      {editingId === c.id
+                        ? <input value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+                            autoFocus style={{ ...inpStyle, width: 140 }} />
+                        : <>👤 {c.name}</>}
                     </td>
 
-                    {/* Phone cell */}
-                    <td style={{ ...td, color: "#6b7280" }}>
-                      {editingId === c.id ? (
-                        <input
-                          value={editForm.phone}
-                          onChange={e => setEditForm({ ...editForm, phone: e.target.value })}
-                          placeholder="01XXXXXXXXX"
-                          style={{ ...inputStyle, width: 130 }}
-                        />
-                      ) : (
-                        c.phone || "—"
-                      )}
+                    <td style={{ ...td, color: T.text3 }}>
+                      {editingId === c.id
+                        ? <input value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })}
+                            placeholder="01XXXXXXXXX" style={{ ...inpStyle, width: 130 }} />
+                        : (c.phone || "—")}
                     </td>
 
-                    {/* Due */}
                     <td style={td}>
                       {c.due_amount > 0 ? (
-                        <span style={{
-                          background: "#fef2f2", color: "#ef4444",
-                          borderRadius: 6, padding: "3px 10px",
-                          fontWeight: "bold", fontSize: 13,
-                        }}>
+                        <span style={{ background: "rgba(254,242,242,0.9)", color: "#ef4444", borderRadius: 8, padding: "3px 10px", fontWeight: 700, fontSize: 13, border: "1px solid #fca5a5" }}>
                           {c.due_amount} ৳
                         </span>
                       ) : (
-                        <span style={{
-                          background: "#f0fdf4", color: "#16a34a",
-                          borderRadius: 6, padding: "3px 10px", fontSize: 13,
-                        }}>
+                        <span style={{ background: "rgba(240,253,244,0.9)", color: "#16a34a", borderRadius: 8, padding: "3px 10px", fontSize: 13, border: "1px solid #86efac" }}>
                           পরিষ্কার ✓
                         </span>
                       )}
                     </td>
 
-                    {/* Ledger */}
                     <td style={td}>
-                      <button
-                        onClick={() => onViewLedger(c)}
-                        style={{
-                          padding: "5px 14px", background: "#eef2ff", color: "#4f46e5",
-                          border: "1px solid #c7d2fe", borderRadius: 6,
-                          fontSize: 13, cursor: "pointer", fontWeight: "bold",
-                        }}
-                      >
-                        📒 Ledger
-                      </button>
+                      <button onClick={() => onViewLedger(c)} style={editBtn}>📒 Ledger</button>
                     </td>
 
-                    {/* Action */}
                     <td style={td}>
                       {editingId === c.id ? (
                         <div style={{ display: "flex", gap: 6 }}>
-                          <button onClick={() => handleEdit(c.id)} style={btnGreen}>✅ সেভ</button>
-                          <button onClick={() => setEditingId(null)} style={btnGray}>বাতিল</button>
+                          <button onClick={() => handleEdit(c.id)} style={successBtn}>✅ সেভ</button>
+                          <button onClick={() => setEditingId(null)} style={secondaryBtn}>বাতিল</button>
                         </div>
                       ) : deletingId === c.id ? (
                         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                          <span style={{ fontSize: 12, color: "#ef4444" }}>নিশ্চিত?</span>
-                          <button onClick={() => handleDelete(c.id, c.name)} style={btnRed}>হ্যাঁ</button>
-                          <button onClick={() => setDeletingId(null)} style={btnGray}>না</button>
+                          <span style={{ fontSize: 12, color: "#ef4444", fontWeight: 600 }}>নিশ্চিত?</span>
+                          <button onClick={() => handleDelete(c.id, c.name)} style={deleteBtn}>হ্যাঁ</button>
+                          <button onClick={() => setDeletingId(null)} style={secondaryBtn}>না</button>
                         </div>
                       ) : (
                         <div style={{ display: "flex", gap: 6 }}>
-                          <button onClick={() => startEdit(c)} style={btnBlue}>✏️ Edit</button>
-                          <button onClick={() => { setDeletingId(c.id); setEditingId(null); }} style={btnRed}>🗑️</button>
+                          <button onClick={() => { setEditingId(c.id); setEditForm({ name: c.name, phone: c.phone || "" }); setDeletingId(null); }} style={editBtn}>✏️ Edit</button>
+                          <button onClick={() => { setDeletingId(c.id); setEditingId(null); }} style={deleteBtn}>🗑️</button>
                         </div>
                       )}
                     </td>
@@ -298,20 +235,3 @@ export default function Customers({ onViewLedger }) {
     </div>
   );
 }
-
-const labelStyle = { display: "block", fontSize: 13, fontWeight: "bold", color: "#374151", marginBottom: 4 };
-const inputStyle = {
-  width: "100%", padding: "9px 12px", border: "2px solid #e5e7eb",
-  borderRadius: 8, fontSize: 14, boxSizing: "border-box", outline: "none",
-};
-const th = { padding: "10px 14px", textAlign: "left", fontSize: 13, color: "#6b7280", fontWeight: "bold" };
-const td = { padding: "11px 14px", fontSize: 14, color: "#374151" };
-
-const btnBase = {
-  padding: "5px 12px", border: "none", borderRadius: 6,
-  fontSize: 12, fontWeight: "bold", cursor: "pointer", whiteSpace: "nowrap",
-};
-const btnBlue  = { ...btnBase, background: "#eef2ff", color: "#4f46e5" };
-const btnRed   = { ...btnBase, background: "#fef2f2", color: "#ef4444" };
-const btnGreen = { ...btnBase, background: "#f0fdf4", color: "#16a34a" };
-const btnGray  = { ...btnBase, background: "#f3f4f6", color: "#6b7280" };

@@ -391,20 +391,28 @@ export default function Reports() {
   //  RENDER
   // ════════════════════════════════════════════════════
   return (
-    <div style={{ maxWidth: 1020, margin: "24px auto", padding: "0 16px" }}>
-      <h2 style={{ margin: "0 0 20px", color: "#1e1b4b" }}>📊 Reports Dashboard</h2>
+    <div className="page-wrapper">
+      <div className="page-header">
+        <h2 className="page-title">📊 Reports Dashboard</h2>
+      </div>
 
       {/* Tabs */}
       <div style={{ display: "flex", gap: 6, marginBottom: 24, flexWrap: "wrap" }}>
-        {TABS.filter(t => t.key !== "outlet" || outlets.length > 0).map(t => (
-          <button key={t.key} onClick={() => setActiveTab(t.key)} style={{
-            padding: "9px 18px",
-            background: activeTab === t.key ? "#4f46e5" : "#f3f4f6",
-            color: activeTab === t.key ? "#fff" : "#374151",
-            border: activeTab === t.key ? "none" : "1px solid #e5e7eb",
-            borderRadius: 8, fontWeight: "bold", fontSize: 13, cursor: "pointer",
-          }}>{t.label}</button>
-        ))}
+        {TABS.filter(t => t.key !== "outlet" || outlets.length > 0).map(t => {
+          const active = activeTab === t.key;
+          return (
+            <button key={t.key} onClick={() => setActiveTab(t.key)} style={{
+              padding: "9px 18px",
+              background: active ? "linear-gradient(135deg, #6366f1, #8b5cf6)" : "rgba(255,255,255,0.65)",
+              color: active ? "#fff" : "#374151",
+              border: "none", borderRadius: 10,
+              fontWeight: active ? 700 : 500, fontSize: 13,
+              cursor: "pointer", fontFamily: "inherit",
+              boxShadow: active ? "0 4px 12px rgba(99,102,241,0.35)" : "0 1px 4px rgba(0,0,0,0.06)",
+              backdropFilter: "blur(10px)",
+            }}>{t.label}</button>
+          );
+        })}
       </div>
 
       {/* ── DAILY ── */}
@@ -652,7 +660,9 @@ export default function Reports() {
 function FilterBar({ children }) {
   return (
     <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:20, flexWrap:"wrap",
-      background:"#f9fafb", border:"1px solid #e5e7eb", borderRadius:10, padding:"12px 16px" }}>
+      background:"rgba(255,255,255,0.65)", backdropFilter:"blur(14px)", WebkitBackdropFilter:"blur(14px)",
+      border:"1px solid rgba(255,255,255,0.9)", borderRadius:14, padding:"12px 16px",
+      boxShadow:"0 2px 10px rgba(99,102,241,0.07)" }}>
       {children}
     </div>
   );
@@ -661,7 +671,7 @@ function FilterBar({ children }) {
 function LabeledField({ label, children }) {
   return (
     <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-      <span style={{ fontWeight:"bold", fontSize:13, color:"#374151", whiteSpace:"nowrap" }}>{label}</span>
+      <span style={{ fontWeight:700, fontSize:12, color:"#6b7280", whiteSpace:"nowrap", textTransform:"uppercase", letterSpacing:"0.4px" }}>{label}</span>
       {children}
     </div>
   );
@@ -669,7 +679,7 @@ function LabeledField({ label, children }) {
 
 function RefreshBtn({ onClick }) {
   return (
-    <button onClick={onClick} style={{ padding:"8px 16px", background:"#4f46e5", color:"#fff", border:"none", borderRadius:7, fontWeight:"bold", fontSize:13, cursor:"pointer" }}>
+    <button onClick={onClick} style={{ padding:"8px 16px", background:"linear-gradient(135deg,#6366f1,#8b5cf6)", color:"#fff", border:"none", borderRadius:9, fontWeight:700, fontSize:13, cursor:"pointer", fontFamily:"inherit", boxShadow:"0 4px 12px rgba(99,102,241,0.35)" }}>
       🔄 দেখুন
     </button>
   );
@@ -679,11 +689,11 @@ function DownloadBtns({ onPDF, onExcel }) {
   return (
     <div style={{ display:"flex", gap:6, marginLeft:"auto" }}>
       <button onClick={onPDF}
-        style={{ padding:"8px 14px", background:"#dc2626", color:"#fff", border:"none", borderRadius:7, fontWeight:"bold", fontSize:12, cursor:"pointer" }}>
+        style={{ padding:"7px 14px", background:"rgba(220,38,38,0.85)", color:"#fff", border:"none", borderRadius:8, fontWeight:700, fontSize:12, cursor:"pointer", fontFamily:"inherit" }}>
         📄 PDF
       </button>
       <button onClick={onExcel}
-        style={{ padding:"8px 14px", background:"#16a34a", color:"#fff", border:"none", borderRadius:7, fontWeight:"bold", fontSize:12, cursor:"pointer" }}>
+        style={{ padding:"7px 14px", background:"rgba(22,163,74,0.85)", color:"#fff", border:"none", borderRadius:8, fontWeight:700, fontSize:12, cursor:"pointer", fontFamily:"inherit" }}>
         📊 Excel
       </button>
     </div>
@@ -692,20 +702,20 @@ function DownloadBtns({ onPDF, onExcel }) {
 
 function SummaryCard({ label, value, color, bg, icon, large }) {
   return (
-    <div style={{ background:bg, borderRadius:10, padding: large ? "20px" : "16px 20px", textAlign:"center", border:`1px solid ${color}22` }}>
+    <div style={{ background:"rgba(255,255,255,0.72)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", border:`1px solid ${color}25`, borderRadius:14, padding: large ? "20px" : "16px 20px", textAlign:"center", boxShadow:`0 4px 16px ${color}15` }}>
       <div style={{ fontSize: large ? 28 : 22, marginBottom:4 }}>{icon}</div>
-      <div style={{ fontSize:12, color:"#6b7280", marginBottom:4 }}>{label}</div>
-      <div style={{ fontSize: large ? 22 : 20, fontWeight:"bold", color }}>{value}</div>
+      <div style={{ fontSize:11, color:"#6b7280", marginBottom:4, fontWeight:600, textTransform:"uppercase", letterSpacing:"0.4px" }}>{label}</div>
+      <div style={{ fontSize: large ? 22 : 18, fontWeight:800, color }}>{value}</div>
     </div>
   );
 }
 
 function CardHdr({ title, badge, badgeRed }) {
   return (
-    <div style={{ padding:"12px 20px", background:"#f9fafb", borderBottom:"1px solid #e5e7eb", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-      <b style={{ color:"#1e1b4b" }}>{title}</b>
+    <div style={{ padding:"14px 20px", background:"rgba(255,255,255,0.5)", borderBottom:"1px solid rgba(255,255,255,0.6)", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+      <b style={{ color:"#1e1b4b", fontSize:15 }}>{title}</b>
       {badge !== undefined && (
-        <span style={{ background: badgeRed ? "#ef4444" : "#4f46e5", color:"#fff", borderRadius:20, padding:"2px 12px", fontSize:13 }}>{badge}</span>
+        <span style={{ background: badgeRed ? "rgba(254,242,242,0.9)" : "rgba(99,102,241,0.12)", color: badgeRed ? "#ef4444" : "#6366f1", border: `1px solid ${badgeRed ? "#fca5a5" : "rgba(99,102,241,0.25)"}`, borderRadius:20, padding:"3px 12px", fontSize:12, fontWeight:700 }}>{badge}</span>
       )}
     </div>
   );
@@ -716,16 +726,16 @@ function Table({ cols, rows }) {
     <div style={{ overflowX:"auto" }}>
       <table style={{ width:"100%", borderCollapse:"collapse" }}>
         <thead>
-          <tr style={{ background:"#f3f4f6" }}>
-            {cols.map(h => <th key={h} style={{ padding:"10px 14px", textAlign:"left", fontSize:13, color:"#6b7280", fontWeight:"bold" }}>{h}</th>)}
+          <tr>
+            {cols.map(h => <th key={h} style={{ padding:"11px 16px", textAlign:"left", fontSize:12, color:"#6b7280", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.5px", borderBottom:"1px solid rgba(255,255,255,0.6)", background:"rgba(255,255,255,0.4)" }}>{h}</th>)}
           </tr>
         </thead>
         <tbody>
           {rows.map((row, ri) => (
-            <tr key={ri} style={{ borderBottom:"1px solid #f3f4f6" }}
-              onMouseEnter={e => e.currentTarget.style.background="#f9fafb"}
-              onMouseLeave={e => e.currentTarget.style.background="#fff"}>
-              {row.map((cell, ci) => <td key={ci} style={{ padding:"11px 14px", fontSize:14, color:"#374151" }}>{cell}</td>)}
+            <tr key={ri} style={{ borderBottom:"1px solid rgba(255,255,255,0.5)" }}
+              onMouseEnter={e => e.currentTarget.style.background="rgba(255,255,255,0.4)"}
+              onMouseLeave={e => e.currentTarget.style.background="transparent"}>
+              {row.map((cell, ci) => <td key={ci} style={{ padding:"12px 16px", fontSize:14, color:"#374151" }}>{cell}</td>)}
             </tr>
           ))}
         </tbody>
@@ -735,13 +745,13 @@ function Table({ cols, rows }) {
 }
 
 function Loader() {
-  return <p style={{ color:"#6b7280", textAlign:"center", padding:40 }}>লোড হচ্ছে...</p>;
+  return <div style={{ textAlign:"center", padding:48 }}><div style={{ fontSize:28, marginBottom:8 }}>⏳</div><p style={{ color:"#9ca3af" }}>লোড হচ্ছে...</p></div>;
 }
 
 function EmptyMsg({ text = "এই সময়ে কোনো ডেটা নেই।" }) {
-  return <p style={{ textAlign:"center", color:"#9ca3af", padding:32, margin:0 }}>{text}</p>;
+  return <div style={{ textAlign:"center", padding:40 }}><div style={{ fontSize:28, marginBottom:8 }}>📭</div><p style={{ color:"#9ca3af", margin:0 }}>{text}</p></div>;
 }
 
-const cardStyle  = { background:"#fff", border:"1px solid #e5e7eb", borderRadius:12, overflow:"hidden", boxShadow:"0 1px 4px rgba(0,0,0,0.06)" };
+const cardStyle  = { background:"rgba(255,255,255,0.72)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", border:"1px solid rgba(255,255,255,0.9)", borderRadius:16, overflow:"hidden", boxShadow:"0 4px 24px rgba(99,102,241,0.08)" };
 const summaryGrid = { display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:14, marginBottom:24 };
-const inputSm    = { padding:"7px 10px", border:"2px solid #e5e7eb", borderRadius:7, fontSize:13 };
+const inputSm    = { padding:"7px 10px", background:"rgba(255,255,255,0.7)", border:"1.5px solid rgba(255,255,255,0.85)", borderRadius:8, fontSize:13, fontFamily:"inherit", color:"#1e1b4b", outline:"none" };
