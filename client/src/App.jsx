@@ -6,6 +6,7 @@ import Products from "./pages/Products";
 import Customers from "./pages/Customers";
 import CustomerLedger from "./pages/CustomerLedger";
 import Inventory from "./pages/Inventory";
+import Reports from "./pages/Reports";
 
 export default function App() {
   const [page, setPage] = useState("pos");
@@ -174,6 +175,13 @@ export default function App() {
       {page === "inventory" && (
         <div style={{ flex: 1, overflowY: "auto" }}>
           <Inventory />
+        </div>
+      )}
+
+      {/* ===== REPORTS PAGE ===== */}
+      {page === "reports" && (
+        <div style={{ flex: 1, overflowY: "auto" }}>
+          <Reports />
         </div>
       )}
 

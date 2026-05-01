@@ -305,6 +305,144 @@ app.post("/stock/adjust", async (req, res) => {
 });
 
 /* =========================
+   📊 REPORTS API (Module 4)
+========================= */
+
+// Phase 4.1 — GET /reports/daily — দৈনিক বিক্রয় রিপোর্ট
+app.get("/reports/daily", async (req, res) => {
+  const { date } = req.query;
+  const targetDate = date || new Date().toISOString().slice(0, 10);
+  const from = `${targetDate}T00:00:00.000Z`;
+  const to   = `${targetDate}T23:59:59.999Z`;
+
+  // Sales in date range
+  const { data: sales, error: saleErr } = await supabase
+    .from("sales")
+    .select("id, total_amount, paid_amount, created_at")
+    .gte("created_at", from)
+    .lte("created_at", to)
+    .order("created_at", { ascending: false });
+
+  if (saleErr) return res.status(500).json({ error: saleErr.message });
+
+  // Sale items for those sales (for profit calc)
+  const saleIds = (sales || []).map(s => s.id);
+  let profitData = 0;
+
+  if (saleIds.length > 0) {
+    const { data: items } = await supabase
+      .from("sale_items")
+      .select("quantity, price, products(buy_price)")
+      .in("sale_id", saleIds);
+
+    if (items) {
+      profitData = items.reduce((sum, item) => {
+        const buyPrice = item.products?.buy_price || 0;
+        return sum + ((item.price - buyPrice) * item.quantity);
+      }, 0);
+    }
+  }
+
+  const totalSales    = (sales || []).length;
+  const totalIncome   = (sales || []).reduce((s, r) => s + (r.total_amount || 0), 0);
+  const totalCollected = (sales || []).reduce((s, r) => s + (r.paid_amount || 0), 0);
+  const totalDue      = totalIncome - totalCollected;
+
+  res.json({
+    date: targetDate,
+    totalSales,
+    totalIncome,
+    totalCollected,
+    totalDue,
+    totalProfit: profitData,
+    sales: sales || [],
+  });
+});
+
+// Phase 4.2 — GET /reports/profit — মুনাফা রিপোর্ট
+app.get("/reports/profit", async (req, res) => {
+  const { from, to } = req.query;
+  const dateFrom = from || new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+  const dateTo   = to   || new Date().toISOString().slice(0, 10);
+
+  const { data: items, error } = await supabase
+    .from("sale_items")
+    .select("quantity, price, products(name, buy_price), sales(created_at)")
+    .gte("sales.created_at", `${dateFrom}T00:00:00.000Z`)
+    .lte("sales.created_at", `${dateTo}T23:59:59.999Z`);
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  const filtered = (items || []).filter(i => i.sales !== null);
+
+  const totalRevenue = filtered.reduce((s, i) => s + (i.price * i.quantity), 0);
+  const totalCost    = filtered.reduce((s, i) => s + ((i.products?.buy_price || 0) * i.quantity), 0);
+  const totalProfit  = totalRevenue - totalCost;
+
+  res.json({
+    from: dateFrom,
+    to: dateTo,
+    totalRevenue,
+    totalCost,
+    totalProfit,
+    itemCount: filtered.length,
+  });
+});
+
+// Phase 4.3 — GET /reports/products — পণ্যভিত্তিক বিক্রয়
+app.get("/reports/products", async (req, res) => {
+  const { from, to } = req.query;
+  const dateFrom = from || new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+  const dateTo   = to   || new Date().toISOString().slice(0, 10);
+
+  const { data: items, error } = await supabase
+    .from("sale_items")
+    .select("quantity, price, product_id, products(name, buy_price), sales(created_at)")
+    .gte("sales.created_at", `${dateFrom}T00:00:00.000Z`)
+    .lte("sales.created_at", `${dateTo}T23:59:59.999Z`);
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  const filtered = (items || []).filter(i => i.sales !== null);
+
+  // Group by product
+  const map = {};
+  for (const item of filtered) {
+    const pid = item.product_id;
+    if (!map[pid]) {
+      map[pid] = {
+        product_id: pid,
+        name: item.products?.name || "Unknown",
+        totalQty: 0,
+        totalRevenue: 0,
+        totalProfit: 0,
+      };
+    }
+    const buyPrice = item.products?.buy_price || 0;
+    map[pid].totalQty     += item.quantity;
+    map[pid].totalRevenue += item.price * item.quantity;
+    map[pid].totalProfit  += (item.price - buyPrice) * item.quantity;
+  }
+
+  const result = Object.values(map).sort((a, b) => b.totalQty - a.totalQty);
+  res.json({ from: dateFrom, to: dateTo, products: result });
+});
+
+// Phase 4.4 — GET /reports/due — customer বাকির রিপোর্ট
+app.get("/reports/due", async (req, res) => {
+  const { data, error } = await supabase
+    .from("customers")
+    .select("id, name, phone, due_amount")
+    .gt("due_amount", 0)
+    .order("due_amount", { ascending: false });
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  const totalDue = (data || []).reduce((s, c) => s + (c.due_amount || 0), 0);
+  res.json({ customers: data || [], totalDue });
+});
+
+/* =========================
    💳 MANUAL PAYMENT API (Phase 2.6)
 ========================= */
 
