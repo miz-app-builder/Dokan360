@@ -33,32 +33,6 @@ const FONT_SIZE_MAP = {
   large:  "17px",
 };
 
-// ── Helpers: localStorage per-user display prefs ──────────
-const displayKey = (userId) => `dokan360_display_${userId}`;
-
-function getCurrentUserId() {
-  try {
-    const u = JSON.parse(localStorage.getItem("dokan360_user"));
-    return u?.id || null;
-  } catch { return null; }
-}
-
-function loadDisplayPrefs(userId) {
-  if (!userId) return {};
-  try {
-    const raw = localStorage.getItem(displayKey(userId));
-    return raw ? JSON.parse(raw) : {};
-  } catch { return {}; }
-}
-
-export function saveDisplayPrefs(userId, prefs) {
-  if (!userId) return;
-  try {
-    const existing = loadDisplayPrefs(userId);
-    localStorage.setItem(displayKey(userId), JSON.stringify({ ...existing, ...prefs }));
-  } catch {}
-}
-
 // ── Provider ───────────────────────────────────────────────
 export function SettingsProvider({ children, isLoggedIn }) {
   const [globalSettings, setGlobalSettings] = useState(GLOBAL_DEFAULTS);
@@ -82,22 +56,26 @@ export function SettingsProvider({ children, isLoggedIn }) {
       .finally(() => setLoading(false));
   }, [isLoggedIn]);
 
-  // ── Load current user's display prefs from localStorage ─
+  // ── Load current user's display prefs from server ────────
   const loadUserDisplay = useCallback(() => {
-    const userId = getCurrentUserId();
-    if (!userId) { setDisplayPrefs(DISPLAY_DEFAULTS); return; }
-    const saved = loadDisplayPrefs(userId);
-    setDisplayPrefs({ ...DISPLAY_DEFAULTS, ...saved });
-  }, []);
+    if (!isLoggedIn) { setDisplayPrefs(DISPLAY_DEFAULTS); return; }
+    API.get("/user/display-prefs")
+      .then(r => setDisplayPrefs({ ...DISPLAY_DEFAULTS, ...r.data }))
+      .catch(() => setDisplayPrefs(DISPLAY_DEFAULTS));
+  }, [isLoggedIn]);
 
-  useEffect(() => { loadSettings(); }, [loadSettings]);
+  useEffect(() => { loadSettings(); },    [loadSettings]);
   useEffect(() => { loadUserDisplay(); }, [loadUserDisplay]);
 
-  // Re-load display prefs when login state changes (user switches)
+  // Re-load when login state changes (user switches)
   useEffect(() => {
-    if (isLoggedIn) loadUserDisplay();
-    else setDisplayPrefs(DISPLAY_DEFAULTS);
-  }, [isLoggedIn, loadUserDisplay]);
+    if (isLoggedIn) {
+      loadSettings();
+      loadUserDisplay();
+    } else {
+      setDisplayPrefs(DISPLAY_DEFAULTS);
+    }
+  }, [isLoggedIn, loadSettings, loadUserDisplay]);
 
   // ── Apply theme / font / lang to DOM ────────────────────
   useEffect(() => {
@@ -112,11 +90,10 @@ export function SettingsProvider({ children, isLoggedIn }) {
     setGlobalSettings(prev => ({ ...prev, ...newSettings }));
   };
 
-  // ── Save + apply current user's display prefs ────────────
-  const updateDisplayPrefs = (prefs) => {
-    const userId = getCurrentUserId();
-    if (userId) saveDisplayPrefs(userId, prefs);
+  // ── Save current user's display prefs to server ──────────
+  const updateDisplayPrefs = async (prefs) => {
     setDisplayPrefs(prev => ({ ...prev, ...prefs }));
+    await API.put("/user/display-prefs", prefs);
   };
 
   const get = (key) => settings[key] ?? GLOBAL_DEFAULTS[key] ?? DISPLAY_DEFAULTS[key] ?? "";

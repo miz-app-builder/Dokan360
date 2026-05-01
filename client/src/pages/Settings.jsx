@@ -61,7 +61,9 @@ export default function Settings() {
     font_size: settings.font_size || "medium",
     theme:     settings.theme     || "light",
   });
-  const [displaySaved, setDisplaySaved] = useState(false);
+  const [displaySaved,   setDisplaySaved]   = useState(false);
+  const [displaySaving,  setDisplaySaving]  = useState(false);
+  const [displayError,   setDisplayError]   = useState("");
 
   // Outlets
   const [outlets, setOutlets] = useState([]);
@@ -101,11 +103,19 @@ export default function Settings() {
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const setDisp = (k, v) => setDisplayForm(f => ({ ...f, [k]: v }));
 
-  // Save per-user display prefs (to localStorage only)
-  const handleDisplaySave = () => {
-    updateDisplayPrefs(displayForm);
-    setDisplaySaved(true);
-    setTimeout(() => setDisplaySaved(false), 2500);
+  // Save per-user display prefs to server
+  const handleDisplaySave = async () => {
+    setDisplaySaving(true);
+    setDisplayError("");
+    try {
+      await updateDisplayPrefs(displayForm);
+      setDisplaySaved(true);
+      setTimeout(() => setDisplaySaved(false), 2500);
+    } catch (err) {
+      setDisplayError("❌ " + (err.response?.data?.error || "সমস্যা হয়েছে, আবার চেষ্টা করুন।"));
+    } finally {
+      setDisplaySaving(false);
+    }
   };
 
   const handleLogoChange = (e) => {
@@ -353,7 +363,7 @@ export default function Settings() {
           <div style={cardHdr}>
             <b>🎨 আমার Display Settings</b>
             <span style={{ fontSize: 12, color: "#6b7280", fontWeight: "normal" }}>
-              এই সেটিংস শুধু আপনার account এর জন্য — অন্যরা দেখতে পাবে না
+              এই সেটিংস আপনার account-এ save হয় — যেকোনো device থেকে login করলেই পাবেন
             </span>
           </div>
           <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 24 }}>
@@ -369,7 +379,7 @@ export default function Settings() {
                 </div>
               </div>
               <div style={{ marginLeft: "auto", fontSize: 11, color: "#9ca3af" }}>
-                🔒 Personal Preferences
+                ☁️ Server-এ Saved
               </div>
             </div>
 
@@ -414,19 +424,26 @@ export default function Settings() {
             </Section>
 
             {/* Save button */}
-            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
               <button
                 onClick={handleDisplaySave}
+                disabled={displaySaving}
                 style={{
-                  padding: "12px 28px", background: "#4f46e5", color: "#fff",
+                  padding: "12px 28px", background: displaySaving ? "#818cf8" : "#4f46e5", color: "#fff",
                   border: "none", borderRadius: 8, fontWeight: "bold",
-                  fontSize: 15, cursor: "pointer",
+                  fontSize: 15, cursor: displaySaving ? "not-allowed" : "pointer",
+                  opacity: displaySaving ? 0.8 : 1,
                 }}>
-                💾 আমার সেটিংস Save করুন
+                {displaySaving ? "⏳ সেভ হচ্ছে..." : "💾 আমার সেটিংস Save করুন"}
               </button>
               {displaySaved && (
                 <span style={{ color: "#16a34a", fontWeight: "bold", fontSize: 14 }}>
-                  ✅ সফলভাবে save হয়েছে!
+                  ✅ সফলভাবে save হয়েছে! যেকোনো device থেকে পাবেন।
+                </span>
+              )}
+              {displayError && (
+                <span style={{ color: "#ef4444", fontWeight: "bold", fontSize: 14 }}>
+                  {displayError}
                 </span>
               )}
             </div>

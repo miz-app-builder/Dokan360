@@ -1096,6 +1096,57 @@ app.delete("/outlets/:id", adminOnly, async (req, res) => {
 });
 
 /* =========================
+   🎨 USER DISPLAY PREFS API
+   Stored in settings table as user_display_{userId}
+========================= */
+
+// GET — load current user's display prefs
+app.get("/user/display-prefs", async (req, res) => {
+  const key = `user_display_${req.user.id}`;
+  const { data, error } = await supabase
+    .from("settings")
+    .select("value")
+    .eq("key", key)
+    .maybeSingle();
+  if (error) return res.status(500).json({ error: error.message });
+  try {
+    const prefs = data?.value ? JSON.parse(data.value) : {};
+    res.json(prefs);
+  } catch {
+    res.json({});
+  }
+});
+
+// PUT — save current user's display prefs
+app.put("/user/display-prefs", async (req, res) => {
+  const { language, font_size, theme } = req.body;
+  const prefs = {};
+  if (language)  prefs.language  = language;
+  if (font_size) prefs.font_size = font_size;
+  if (theme)     prefs.theme     = theme;
+
+  const key = `user_display_${req.user.id}`;
+
+  // Load existing first, then merge
+  const { data: existing } = await supabase
+    .from("settings")
+    .select("value")
+    .eq("key", key)
+    .maybeSingle();
+
+  let merged = {};
+  try { merged = existing?.value ? JSON.parse(existing.value) : {}; } catch {}
+  merged = { ...merged, ...prefs };
+
+  const { error } = await supabase
+    .from("settings")
+    .upsert({ key, value: JSON.stringify(merged) }, { onConflict: "key" });
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ success: true, prefs: merged });
+});
+
+/* =========================
    🚀 START SERVER
 ========================= */
 app.listen(3000, "0.0.0.0", () => {
