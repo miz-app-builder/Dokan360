@@ -101,7 +101,18 @@ export default function Settings() {
   };
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
-  const setDisp = (k, v) => setDisplayForm(f => ({ ...f, [k]: v }));
+  const setDisp = async (k, v) => {
+    const newPrefs = { ...displayForm, [k]: v };
+    setDisplayForm(newPrefs);
+    try {
+      await updateDisplayPrefs(newPrefs);
+      setDisplaySaved(true);
+      setTimeout(() => setDisplaySaved(false), 2000);
+    } catch {
+      setDisplayError("❌ Save হয়নি, আবার চেষ্টা করুন।");
+      setTimeout(() => setDisplayError(""), 3000);
+    }
+  };
 
   // Save per-user display prefs to server
   const handleDisplaySave = async () => {
@@ -430,26 +441,15 @@ export default function Settings() {
               </p>
             </Section>
 
-            {/* Save button */}
-            <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-              <button
-                onClick={handleDisplaySave}
-                disabled={displaySaving}
-                style={{
-                  padding: "12px 28px", background: displaySaving ? "#818cf8" : "#4f46e5", color: "#fff",
-                  border: "none", borderRadius: 8, fontWeight: "bold",
-                  fontSize: 15, cursor: displaySaving ? "not-allowed" : "pointer",
-                  opacity: displaySaving ? 0.8 : 1,
-                }}>
-                {displaySaving ? "⏳ সেভ হচ্ছে..." : "💾 আমার সেটিংস Save করুন"}
-              </button>
+            {/* Auto-save status */}
+            <div style={{ minHeight: 24 }}>
               {displaySaved && (
-                <span style={{ color: "#16a34a", fontWeight: "bold", fontSize: 14 }}>
-                  ✅ সফলভাবে save হয়েছে! যেকোনো device থেকে পাবেন।
+                <span style={{ color: "#16a34a", fontWeight: "bold", fontSize: 13 }}>
+                  ✅ সেভ হয়ে গেছে!
                 </span>
               )}
               {displayError && (
-                <span style={{ color: "#ef4444", fontWeight: "bold", fontSize: 14 }}>
+                <span style={{ color: "#ef4444", fontWeight: "bold", fontSize: 13 }}>
                   {displayError}
                 </span>
               )}

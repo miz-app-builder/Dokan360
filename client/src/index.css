@@ -365,3 +365,71 @@ html, body {
   .hide-desktop { display: none !important; }
 }
 
+/* ===== DARK THEME ===== */
+[data-theme="dark"] {
+  --app-bg:       linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 40%, #16213e 80%, #0f3460 100%);
+  --glass-bg:     rgba(255,255,255,0.07);
+  --glass-border: rgba(255,255,255,0.10);
+  --text-1:       #e2e8f0;
+  --text-2:       #cbd5e1;
+  --text-3:       #94a3b8;
+  --text-4:       #64748b;
+  --accent:       #818cf8;
+  --accent2:      #a78bfa;
+}
+[data-theme="dark"] body { background: #0f0f1a; color: #e2e8f0; }
+[data-theme="dark"] .app-shell { background: var(--app-bg) !important; background-attachment: fixed !important; }
+[data-theme="dark"] .sidebar {
+  background: rgba(15,15,26,0.88) !important;
+  border-right-color: rgba(255,255,255,0.08) !important;
+}
+[data-theme="dark"] .bottom-nav {
+  background: rgba(15,15,26,0.95) !important;
+  border-top-color: rgba(255,255,255,0.08) !important;
+}
+[data-theme="dark"] .glass-card {
+  background: rgba(255,255,255,0.07) !important;
+  border-color: rgba(255,255,255,0.10) !important;
+}
+[data-theme="dark"] .glass-input {
+  background: rgba(255,255,255,0.08) !important;
+  border-color: rgba(255,255,255,0.15) !important;
+  color: #e2e8f0 !important;
+}
+[data-theme="dark"] .glass-table th { background: rgba(255,255,255,0.06) !important; }
+[data-theme="dark"] .glass-table td { color: #cbd5e1 !important; border-color: rgba(255,255,255,0.06) !important; }
+[data-theme="dark"] .glass-table tbody tr:hover { background: rgba(255,255,255,0.05) !important; }
+[data-theme="dark"] .topbar-drop-item { color: #e2e8f0 !important; }
+[data-theme="dark"] .page-title { color: #e2e8f0 !important; }
+
+/* ===== PURPLE THEME ===== */
+[data-theme="purple"] {
+  --app-bg:       linear-gradient(135deg, #2d1b69 0%, #4c1d95 35%, #6d28d9 70%, #7c3aed 100%);
+  --glass-bg:     rgba(255,255,255,0.18);
+  --glass-border: rgba(255,255,255,0.30);
+  --text-1:       #1e1b4b;
+  --text-2:       #3b0764;
+  --text-3:       #6b21a8;
+  --text-4:       #9333ea;
+  --accent:       #7c3aed;
+  --accent2:      #a855f7;
+}
+[data-theme="purple"] body { background: #4c1d95; }
+[data-theme="purple"] .app-shell { background: var(--app-bg) !important; background-attachment: fixed !important; }
+[data-theme="purple"] .sidebar {
+  background: rgba(76,29,149,0.70) !important;
+  border-right-color: rgba(255,255,255,0.22) !important;
+}
+[data-theme="purple"] .bottom-nav {
+  background: rgba(45,27,105,0.95) !important;
+  border-top-color: rgba(255,255,255,0.22) !important;
+}
+[data-theme="purple"] .glass-card {
+  background: rgba(255,255,255,0.18) !important;
+  border-color: rgba(255,255,255,0.30) !important;
+}
+[data-theme="purple"] .glass-input {
+  background: rgba(255,255,255,0.25) !important;
+  border-color: rgba(255,255,255,0.40) !important;
+}
+
