@@ -14,7 +14,15 @@ export default function Topbar({ user, shopName, onLogout, setPage }) {
   const [now, setNow]           = useState(new Date());
   const [notices, setNotices]   = useState([]);
   const [open, setOpen]         = useState(false);
+  const [photoUrl, setPhotoUrl] = useState(null);
   const dropRef                 = useRef(null);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    API.get(`/users/${user.id}`)
+      .then(r => { if (r.data?.photo_url) setPhotoUrl(r.data.photo_url); })
+      .catch(() => {});
+  }, [user?.id]);
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
@@ -148,7 +156,12 @@ export default function Topbar({ user, shopName, onLogout, setPage }) {
               display: "flex", alignItems: "center", justifyContent: "center",
               color: "#fff", fontSize: 11, fontWeight: 800, flexShrink: 0,
               boxShadow: `0 3px 10px ${ACCENT}40`,
-            }}>{initials}</div>
+              overflow: "hidden",
+            }}>
+              {photoUrl
+                ? <img src={photoUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                : initials}
+            </div>
             <span className="hide-mobile" style={{ fontSize: 13, fontWeight: 700, color: "#1e1b4b" }}>
               {user?.name || user?.username}
             </span>
@@ -178,7 +191,12 @@ export default function Topbar({ user, shopName, onLogout, setPage }) {
                     display: "flex", alignItems: "center", justifyContent: "center",
                     color: "#fff", fontSize: 14, fontWeight: 800,
                     boxShadow: `0 4px 12px ${ACCENT}40`,
-                  }}>{initials}</div>
+                    overflow: "hidden",
+                  }}>
+                    {photoUrl
+                      ? <img src={photoUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      : initials}
+                  </div>
                   <div>
                     <div style={{ fontWeight: 800, fontSize: 14, color: "#1e1b4b" }}>
                       {user?.name || user?.username}

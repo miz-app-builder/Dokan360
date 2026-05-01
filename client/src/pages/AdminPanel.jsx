@@ -578,6 +578,12 @@ function UserProfile({ user, isNew, currentUser, onSaved, onBack, showMsg, outle
           {/* Account Settings */}
           <div style={card}>
             <label style={sectionLabel}>🔐 Account</label>
+            {!isNew && user?.id && (
+              <div style={{ marginBottom: 10, padding: "7px 10px", background: "#f3f4f6", borderRadius: 7, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.4px" }}>User ID</span>
+                <span style={{ fontSize: 13, fontWeight: 800, color: "#4f46e5", fontFamily: "monospace" }}>#{user.id}</span>
+              </div>
+            )}
             {isNew && (
               <div style={{ marginBottom: 10 }}>
                 <label style={lbl}>Username *</label>
