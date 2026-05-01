@@ -418,9 +418,6 @@ export default function Settings() {
                   </ChoiceBtn>
                 ))}
               </div>
-              <p style={{ margin: "8px 0 0", fontSize: 12, color: "#6b7280" }}>
-                থিম সঙ্গে সঙ্গে apply হবে এবং পরের login এও মনে থাকবে।
-              </p>
             </Section>
 
             {/* Auto-save status */}
