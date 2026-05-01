@@ -56,7 +56,7 @@ export default function Topbar({ user, shopName, onLogout, setPage }) {
     .split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
 
   return (
-    <header style={{
+    <header className="topbar-root" style={{
       height: "var(--topbar-h)",
       display: "flex",
       alignItems: "center",
@@ -73,7 +73,7 @@ export default function Topbar({ user, shopName, onLogout, setPage }) {
     }}>
 
       {/* ── LEFT: Time + Date ── */}
-      <div style={{
+      <div className="topbar-time" style={{
         display: "flex", flexDirection: "column", alignItems: "flex-start",
         flexShrink: 0, minWidth: 110,
       }}>
@@ -86,7 +86,7 @@ export default function Topbar({ user, shopName, onLogout, setPage }) {
       </div>
 
       {/* ── CENTER: Notice Marquee ── */}
-      <div style={{
+      <div className="topbar-notice" style={{
         flex: 1,
         overflow: "hidden",
         display: "flex",
@@ -119,7 +119,7 @@ export default function Topbar({ user, shopName, onLogout, setPage }) {
       </div>
 
       {/* ── RIGHT: Outlet + User dropdown ── */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+      <div className="topbar-right" style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
         {shopName && (
           <span className="hide-mobile" style={{
             fontSize: 12, fontWeight: 700, color: ACCENT,

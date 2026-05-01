@@ -306,6 +306,12 @@ html, body {
   .hide-mobile  { display: none !important; }
   .app-layout   { flex-direction: column; }
 
+  /* Topbar responsive */
+  .topbar-root  { padding: 0 10px !important; gap: 8px !important; }
+  .topbar-time  { min-width: 72px !important; }
+  .topbar-notice { padding: 0 6px !important; }
+  .topbar-right  { gap: 6px !important; }
+
   /* page-content: leave room for fixed bottom-nav */
   .page-content {
     height: calc(100% - var(--bottom-nav-h)) !important;
