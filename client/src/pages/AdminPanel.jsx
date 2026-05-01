@@ -597,9 +597,9 @@ function UserProfile({ user, isNew, currentUser, onSaved, onBack, showMsg, outle
                 </div>
               )}
               <div style={{ padding: "8px 12px" }}>
-                <label style={lbl}>{isNew ? "Password *" : "নতুন Password (ঐচ্ছিক)"}</label>
+                <label style={lbl}>{isNew ? "Password *" : "Password"}</label>
                 <input type="password" value={form.password} onChange={e => set("password", e.target.value)}
-                  placeholder={isNew ? "" : "পরিবর্তন করতে লিখুন"} style={{ ...inp, marginTop: 4 }} />
+                  placeholder={isNew ? "" : ""} style={{ ...inp, marginTop: 4 }} />
               </div>
             </div>
             <CustomSelect
