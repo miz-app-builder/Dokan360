@@ -249,41 +249,61 @@ html, body {
 
 /* ===== RESPONSIVE ===== */
 @media (max-width: 1024px) {
-  .sidebar { display: none !important; }
-  .bottom-nav { display: flex !important; }
-  .page-content {
-    height: calc(100vh - var(--bottom-nav-h));
-    padding-bottom: var(--bottom-nav-h);
-  }
-  .page-wrapper { padding: 16px; }
-  .app-layout { flex-direction: column; }
-  .hide-mobile { display: none !important; }
+  .sidebar      { display: none !important; }
+  .bottom-nav   { display: flex !important; }
+  .hide-mobile  { display: none !important; }
+  .app-layout   { flex-direction: column; }
 
-  /* POS layout: stack vertically on mobile */
+  /* page-content fills exactly viewport minus bottom-nav, no external scroll */
+  .page-content {
+    height: calc(100vh - var(--bottom-nav-h)) !important;
+    overflow: hidden !important;
+    padding-bottom: 0 !important;
+  }
+
+  /* Non-POS pages: page-wrapper scrolls internally */
+  .page-wrapper {
+    padding: 16px !important;
+    height: 100% !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  /* ── POS layout: flex-column, fills page-content exactly ── */
   .pos-layout {
     flex-direction: column !important;
-    overflow-y: auto !important;
-    height: auto !important;
+    height: 100% !important;
+    overflow: hidden !important;
   }
+
+  /* Products section: takes remaining space, scrolls internally */
   .pos-products {
+    flex: 1 !important;
+    min-height: 0 !important;       /* KEY: lets flex shrink properly */
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
     border-right: none !important;
     border-bottom: 1px solid rgba(255,255,255,0.6) !important;
-    height: auto !important;
-    max-height: none !important;
-    overflow-y: visible !important;
   }
+
+  /* Cart section: fixed at bottom, max half screen, scrolls if needed */
   .pos-cart {
+    flex: 0 0 auto !important;
     width: 100% !important;
-    flex-shrink: unset !important;
-    max-height: none !important;
+    max-height: 52vh !important;
+    overflow-y: auto !important;
     border-top: 2px solid rgba(99,102,241,0.15) !important;
   }
+
+  /* Smaller product cards on mobile */
   .product-grid {
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)) !important;
+    gap: 8px !important;
   }
 }
 
 @media (min-width: 1025px) {
-  .bottom-nav { display: none !important; }
+  .bottom-nav   { display: none !important; }
   .hide-desktop { display: none !important; }
 }
