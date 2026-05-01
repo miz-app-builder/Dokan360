@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { API } from "./api";
 import Navbar from "./components/Navbar";
+import Topbar from "./components/Topbar";
 import Categories from "./pages/Categories";
 import Products from "./pages/Products";
 import Customers from "./pages/Customers";
@@ -10,6 +11,7 @@ import Reports from "./pages/Reports";
 import Login from "./pages/Login";
 import AdminPanel from "./pages/AdminPanel";
 import Settings from "./pages/Settings";
+import NoticePanel from "./pages/NoticePanel";
 import BarcodeScanner from "./components/BarcodeScanner";
 import { SettingsProvider, useSettings } from "./context/SettingsContext";
 import { glass, T } from "./theme";
@@ -158,11 +160,21 @@ function AppInner({ onUserChange }) {
   };
 
   return (
-    <div className="app-layout" style={{ fontSize: appFontSize }}>
+    <div className="app-shell" style={{ fontSize: appFontSize }}>
 
       {showScanner && (
         <BarcodeScanner onDetected={handleScanDetected} onClose={() => setShowScanner(false)} />
       )}
+
+      {/* ===== TOP BAR ===== */}
+      <Topbar
+        user={user}
+        shopName={settings?.shop_name}
+        onLogout={handleLogout}
+        setPage={(p) => { setPage(p); setLedgerCustomer(null); }}
+      />
+
+      <div className="app-layout">
 
       <Navbar
         activePage={page}
@@ -203,6 +215,9 @@ function AppInner({ onUserChange }) {
 
         {/* Settings */}
         {page === "settings" && <Settings />}
+
+        {/* Notices */}
+        {page === "notices" && user?.role === "admin" && <NoticePanel />}
 
         {/* ===== POS PAGE ===== */}
         {page === "pos" && (
@@ -518,6 +533,7 @@ function AppInner({ onUserChange }) {
           </div>
         )}
       </main>
+      </div>
     </div>
   );
 }

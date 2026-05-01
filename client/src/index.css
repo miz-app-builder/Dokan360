@@ -13,6 +13,7 @@
   --app-bg:   linear-gradient(135deg, #ede9fe 0%, #e0e7ff 40%, #dbeafe 80%, #f0fdf4 100%);
   --sidebar-w: 240px;
   --bottom-nav-h: 68px;
+  --topbar-h: 48px;
   --sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
@@ -39,20 +40,65 @@ html, body {
 ::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.25); border-radius: 99px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(99,102,241,0.45); }
 
-/* ===== APP LAYOUT ===== */
-.app-layout {
+/* ===== APP SHELL (outer: topbar + content row) ===== */
+.app-shell {
   display: flex;
+  flex-direction: column;
   height: 100vh;
+  overflow: hidden;
   background: var(--app-bg);
   background-attachment: fixed;
+}
+
+/* ===== APP LAYOUT (sidebar + page-content row) ===== */
+.app-layout {
+  display: flex;
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
 }
+
+/* ===== NOTICE MARQUEE ===== */
+@keyframes marquee-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.notice-marquee-track {
+  display: inline-flex;
+  gap: 0;
+  white-space: nowrap;
+  animation: marquee-scroll 28s linear infinite;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6366f1;
+}
+.notice-marquee-track:hover { animation-play-state: paused; }
+
+/* ===== TOPBAR DROPDOWN ITEMS ===== */
+.topbar-drop-item {
+  display: block;
+  width: 100%;
+  padding: 9px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  text-align: left;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  transition: background 0.13s;
+}
+.topbar-drop-item:hover { background: rgba(99,102,241,0.08); color: #6366f1; }
+.topbar-drop-danger { color: #ef4444 !important; }
+.topbar-drop-danger:hover { background: rgba(239,68,68,0.08) !important; }
 
 /* ===== SIDEBAR ===== */
 .sidebar {
   width: var(--sidebar-w);
   min-width: var(--sidebar-w);
-  height: 100vh;
+  height: 100%;
   background: rgba(255,255,255,0.60);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
@@ -85,8 +131,9 @@ html, body {
 .page-content {
   flex: 1;
   min-width: 0;
-  height: 100vh;
-  overflow: hidden;          /* never scroll the whole page */
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
@@ -259,11 +306,10 @@ html, body {
   .hide-mobile  { display: none !important; }
   .app-layout   { flex-direction: column; }
 
-  /* page-content fills exactly viewport minus bottom-nav, no external scroll */
+  /* page-content: leave room for fixed bottom-nav */
   .page-content {
-    height: calc(100vh - var(--bottom-nav-h)) !important;
+    height: calc(100% - var(--bottom-nav-h)) !important;
     overflow: hidden !important;
-    padding-bottom: 0 !important;
   }
 
   /* Non-POS pages: page-wrapper scrolls internally */

@@ -20,6 +20,7 @@ export default function Navbar({ activePage, setPage, user, perms = {}, onLogout
     { key: "customers",  icon: "👥", label: "Customers"     },
     { key: "inventory",  icon: "🏭", label: "Inventory"     },
     { key: "reports",    icon: "📊", label: "Reports"       },
+    { key: "notices",    icon: "📢", label: "Notices",     adminOnly: true },
     { key: "admin",      icon: "⚙️", label: "Admin Panel", adminOnly: true },
     { key: "settings",   icon: "🔧", label: "Settings"      },
   ].filter(l => l.adminOnly ? isAdmin : canView(l.key));

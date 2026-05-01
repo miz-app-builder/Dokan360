@@ -1171,6 +1171,91 @@ app.put("/user/display-prefs", async (req, res) => {
 });
 
 /* =========================
+   📢 NOTICES
+========================= */
+
+// GET /api/notices/active — no auth required, returns currently live notices
+app.get("/api/notices/active", async (req, res) => {
+  try {
+    const now = new Date().toISOString();
+    const { data, error } = await supabase
+      .from("notices")
+      .select("id, text, publish_at, expires_at")
+      .eq("is_active", true)
+      .lte("publish_at", now)
+      .or(`expires_at.is.null,expires_at.gt.${now}`)
+      .order("publish_at", { ascending: false });
+    if (error) return res.json({ notices: [] });
+    res.json({ notices: data || [] });
+  } catch { res.json({ notices: [] }); }
+});
+
+// GET /api/notices — all notices (admin)
+app.get("/api/notices", authMiddleware, async (req, res) => {
+  const { data, error } = await supabase
+    .from("notices")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ notices: data || [] });
+});
+
+// POST /api/notices — create notice (admin)
+app.post("/api/notices", authMiddleware, async (req, res) => {
+  if (req.user.role !== "admin") return res.status(403).json({ error: "শুধু Admin পারবে।" });
+  const { text, publish_at, duration_hours } = req.body;
+  if (!text?.trim()) return res.status(400).json({ error: "Notice text দিন।" });
+
+  const publishAt = publish_at ? new Date(publish_at).toISOString() : new Date().toISOString();
+  let expiresAt = null;
+  if (duration_hours && parseFloat(duration_hours) > 0) {
+    const exp = new Date(publishAt);
+    exp.setHours(exp.getHours() + parseFloat(duration_hours));
+    expiresAt = exp.toISOString();
+  }
+
+  const { data, error } = await supabase
+    .from("notices")
+    .insert([{ text: text.trim(), publish_at: publishAt, expires_at: expiresAt,
+               is_active: true, created_by: req.user.username }])
+    .select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ notice: data });
+});
+
+// PUT /api/notices/:id — update / toggle (admin)
+app.put("/api/notices/:id", authMiddleware, async (req, res) => {
+  if (req.user.role !== "admin") return res.status(403).json({ error: "শুধু Admin পারবে।" });
+  const { id } = req.params;
+  const { text, publish_at, duration_hours, is_active } = req.body;
+  const updates = {};
+  if (text !== undefined)      updates.text      = text.trim();
+  if (is_active !== undefined) updates.is_active = is_active;
+  if (publish_at !== undefined) {
+    updates.publish_at = new Date(publish_at).toISOString();
+    if (duration_hours && parseFloat(duration_hours) > 0) {
+      const exp = new Date(updates.publish_at);
+      exp.setHours(exp.getHours() + parseFloat(duration_hours));
+      updates.expires_at = exp.toISOString();
+    } else if (duration_hours === 0 || duration_hours === "0") {
+      updates.expires_at = null;
+    }
+  }
+  const { data, error } = await supabase
+    .from("notices").update(updates).eq("id", id).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ notice: data });
+});
+
+// DELETE /api/notices/:id (admin)
+app.delete("/api/notices/:id", authMiddleware, async (req, res) => {
+  if (req.user.role !== "admin") return res.status(403).json({ error: "শুধু Admin পারবে।" });
+  const { error } = await supabase.from("notices").delete().eq("id", req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ success: true });
+});
+
+/* =========================
    🚀 START SERVER
 ========================= */
 app.listen(3000, "0.0.0.0", () => {
