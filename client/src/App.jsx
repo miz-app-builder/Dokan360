@@ -3,6 +3,8 @@ import { API } from "./api";
 import Navbar from "./components/Navbar";
 import Categories from "./pages/Categories";
 import Products from "./pages/Products";
+import Customers from "./pages/Customers";
+import CustomerLedger from "./pages/CustomerLedger";
 
 export default function App() {
   const [page, setPage] = useState("pos");
@@ -14,6 +16,7 @@ export default function App() {
   const [filterCat, setFilterCat] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [paidAmount, setPaidAmount] = useState("");
+  const [ledgerCustomer, setLedgerCustomer] = useState(null);
   const barcodeRef = useRef(null);
 
   // =========================
@@ -141,13 +144,30 @@ export default function App() {
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: "#f5f6fa" }}>
 
-      <Navbar activePage={page} setPage={setPage} />
+      <Navbar activePage={page} setPage={(p) => { setPage(p); setLedgerCustomer(null); }} />
 
       {/* ===== PRODUCTS PAGE ===== */}
       {page === "products" && <Products />}
 
       {/* ===== CATEGORIES PAGE ===== */}
       {page === "categories" && <Categories />}
+
+      {/* ===== CUSTOMERS PAGE ===== */}
+      {page === "customers" && !ledgerCustomer && (
+        <div style={{ flex: 1, overflowY: "auto" }}>
+          <Customers onViewLedger={(c) => setLedgerCustomer(c)} />
+        </div>
+      )}
+
+      {/* ===== CUSTOMER LEDGER PAGE ===== */}
+      {page === "customers" && ledgerCustomer && (
+        <div style={{ flex: 1, overflowY: "auto" }}>
+          <CustomerLedger
+            customer={ledgerCustomer}
+            onBack={() => setLedgerCustomer(null)}
+          />
+        </div>
+      )}
 
       {/* ===== POS PAGE ===== */}
       {page === "pos" && (

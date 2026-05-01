@@ -204,6 +204,47 @@ app.get("/customers/:id/ledger", async (req, res) => {
 });
 
 /* =========================
+   💳 MANUAL PAYMENT API (Phase 2.6)
+========================= */
+
+// POST — manual payment receive from customer
+app.post("/payments", async (req, res) => {
+  const { customer_id, amount, note } = req.body;
+  if (!customer_id) return res.status(400).json({ error: "customer_id দেওয়া আবশ্যক।" });
+  if (!amount || amount <= 0) return res.status(400).json({ error: "সঠিক পরিমাণ দিন।" });
+
+  // Get current due
+  const { data: cust, error: custErr } = await supabase
+    .from("customers")
+    .select("id, due_amount")
+    .eq("id", customer_id)
+    .single();
+
+  if (custErr || !cust) return res.status(404).json({ error: "Customer পাওয়া যায়নি।" });
+  if (amount > cust.due_amount) {
+    return res.status(400).json({ error: `বাকির চেয়ে বেশি নেওয়া যাবে না। বর্তমান বাকি: ${cust.due_amount} ৳` });
+  }
+
+  // Insert payment record
+  const { error: payErr } = await supabase
+    .from("payments")
+    .insert([{ customer_id, amount, note: note || null }]);
+
+  if (payErr) return res.status(500).json({ error: payErr.message });
+
+  // Reduce due_amount
+  const newDue = Math.max(0, cust.due_amount - amount);
+  const { error: updateErr } = await supabase
+    .from("customers")
+    .update({ due_amount: newDue })
+    .eq("id", customer_id);
+
+  if (updateErr) return res.status(500).json({ error: updateErr.message });
+
+  res.json({ success: true, new_due: newDue });
+});
+
+/* =========================
    💰 SALES API
 ========================= */
 

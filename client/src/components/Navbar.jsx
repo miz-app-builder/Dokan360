@@ -3,6 +3,7 @@ export default function Navbar({ activePage, setPage }) {
     { key: "pos",        label: "🛒 POS" },
     { key: "products",   label: "📦 Products" },
     { key: "categories", label: "🗂️ Categories" },
+    { key: "customers",  label: "👥 Customers" },
   ];
 
   return (
