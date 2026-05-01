@@ -294,14 +294,17 @@ function UserList({ users, currentUser, onOpen, onNew, onDelete }) {
 /* ═══════════════════════════════════════
    OUTLET PICKER — custom styled, no native OS picker
 ═══════════════════════════════════════ */
-function OutletPicker({ outlets, value, onChange }) {
+/* options: [{ value, label }]  — generic custom dropdown (no native OS picker) */
+function CustomSelect({ label, value, onChange, options, placeholder = "— বেছে নিন —", wrapStyle = {} }) {
   const [open, setOpen] = useState(false);
-  const selected = outlets.find(o => String(o.id) === String(value));
+  const selected = options.find(o => String(o.value) === String(value));
   return (
-    <div style={{ marginBottom: 10, position: "relative" }}>
-      <label style={{ display: "block", fontSize: 11, color: "#6b7280", marginBottom: 4, fontWeight: 600 }}>
-        🏬 Outlet (ঐচ্ছিক)
-      </label>
+    <div style={{ position: "relative", ...wrapStyle }}>
+      {label && (
+        <label style={{ display: "block", fontSize: 11, color: "#6b7280", marginBottom: 4, fontWeight: 600 }}>
+          {label}
+        </label>
+      )}
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
@@ -309,11 +312,14 @@ function OutletPicker({ outlets, value, onChange }) {
           width: "100%", padding: "8px 12px", borderRadius: 6, fontSize: 13,
           border: "1px solid #e5e7eb", background: "#fff", cursor: "pointer",
           display: "flex", justifyContent: "space-between", alignItems: "center",
-          color: selected ? "#1e1b4b" : "#9ca3af", textAlign: "left",
+          color: selected?.value ? "#1e1b4b" : "#9ca3af", textAlign: "left",
+          boxSizing: "border-box",
         }}
       >
-        <span>{selected ? selected.name : "— Outlet নির্ধারণ করুন —"}</span>
-        <span style={{ fontSize: 10, color: "#9ca3af" }}>{open ? "▲" : "▼"}</span>
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {selected ? selected.label : placeholder}
+        </span>
+        <span style={{ fontSize: 10, color: "#9ca3af", flexShrink: 0, marginLeft: 6 }}>{open ? "▲" : "▼"}</span>
       </button>
       {open && (
         <>
@@ -321,29 +327,46 @@ function OutletPicker({ outlets, value, onChange }) {
           <div style={{
             position: "absolute", top: "100%", left: 0, right: 0, zIndex: 50,
             background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8,
-            boxShadow: "0 4px 16px rgba(0,0,0,0.12)", overflow: "hidden", marginTop: 2,
+            boxShadow: "0 4px 16px rgba(0,0,0,0.12)", marginTop: 2,
+            maxHeight: 220, overflowY: "auto",
           }}>
-          {[{ id: "", name: "— Outlet নির্ধারণ করুন —" }, ...outlets].map(o => (
-            <div
-              key={o.id}
-              onClick={() => { onChange(String(o.id)); setOpen(false); }}
-              style={{
-                padding: "10px 14px", fontSize: 13, cursor: "pointer",
-                background: String(o.id) === String(value) ? "#eef2ff" : "#fff",
-                color: String(o.id) === String(value) ? "#4f46e5" : (o.id ? "#1e1b4b" : "#9ca3af"),
-                fontWeight: String(o.id) === String(value) ? 600 : 400,
-                borderBottom: "1px solid #f3f4f6",
-                display: "flex", justifyContent: "space-between", alignItems: "center",
-              }}
-            >
-              {o.name}
-              {String(o.id) === String(value) && <span style={{ color: "#4f46e5" }}>✓</span>}
-            </div>
-          ))}
+            {options.map(o => (
+              <div
+                key={o.value}
+                onClick={() => { onChange(String(o.value)); setOpen(false); }}
+                style={{
+                  padding: "10px 14px", fontSize: 13, cursor: "pointer",
+                  background: String(o.value) === String(value) ? "#eef2ff" : "#fff",
+                  color: String(o.value) === String(value) ? "#4f46e5" : (o.value ? "#1e1b4b" : "#9ca3af"),
+                  fontWeight: String(o.value) === String(value) ? 600 : 400,
+                  borderBottom: "1px solid #f3f4f6",
+                  display: "flex", justifyContent: "space-between", alignItems: "center",
+                }}
+              >
+                {o.label}
+                {String(o.value) === String(value) && <span style={{ color: "#4f46e5" }}>✓</span>}
+              </div>
+            ))}
           </div>
         </>
       )}
     </div>
+  );
+}
+
+function OutletPicker({ outlets, value, onChange }) {
+  const options = [
+    { value: "", label: "— Outlet নির্ধারণ করুন —" },
+    ...outlets.map(o => ({ value: String(o.id), label: o.name })),
+  ];
+  return (
+    <CustomSelect
+      label="🏬 Outlet (ঐচ্ছিক)"
+      value={value}
+      onChange={onChange}
+      options={options}
+      wrapStyle={{ marginBottom: 10 }}
+    />
   );
 }
 
@@ -516,12 +539,13 @@ function UserProfile({ user, isNew, currentUser, onSaved, onBack, showMsg, outle
                 <input value={form.username} onChange={e => set("username", e.target.value)} style={inp} required />
               </div>
             )}
-            <div style={{ marginBottom: 10 }}>
-              <label style={lbl}>Role *</label>
-              <select value={form.role} onChange={e => set("role", e.target.value)} style={inp}>
-                {ROLES.map(r => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
-              </select>
-            </div>
+            <CustomSelect
+              label="Role *"
+              value={form.role}
+              onChange={v => set("role", v)}
+              options={ROLES.map(r => ({ value: r, label: ROLE_LABEL[r] }))}
+              wrapStyle={{ marginBottom: 10 }}
+            />
             <div style={{ marginBottom: 10 }}>
               <label style={lbl}>{isNew ? "Password *" : "নতুন Password (ঐচ্ছিক)"}</label>
               <input type="password" value={form.password} onChange={e => set("password", e.target.value)}
@@ -737,25 +761,33 @@ function PermissionsPanel({ permissions, activeRole, setActiveRole, onSave, load
 function Field({ label, value, onChange, type = "text", placeholder, options }) {
   return (
     <div>
-      <label style={lbl}>{label}</label>
       {type === "select" ? (
-        <select value={value} onChange={e => onChange(e.target.value)} style={inp}>
-          {options.map(o => <option key={o} value={o}>{o || "— বেছে নিন —"}</option>)}
-        </select>
+        <CustomSelect
+          label={label}
+          value={value}
+          onChange={onChange}
+          options={options.map(o => ({ value: o, label: o || "— বেছে নিন —" }))}
+        />
       ) : type === "textarea" ? (
-        <textarea
-          value={value} onChange={e => onChange(e.target.value)}
-          placeholder={placeholder}
-          rows={2}
-          style={{ ...inp, resize: "vertical" }}
-        />
+        <>
+          <label style={lbl}>{label}</label>
+          <textarea
+            value={value} onChange={e => onChange(e.target.value)}
+            placeholder={placeholder}
+            rows={2}
+            style={{ ...inp, resize: "vertical" }}
+          />
+        </>
       ) : (
-        <input
-          type={type} value={value}
-          onChange={e => onChange(e.target.value)}
-          placeholder={placeholder}
-          style={inp}
-        />
+        <>
+          <label style={lbl}>{label}</label>
+          <input
+            type={type} value={value}
+            onChange={e => onChange(e.target.value)}
+            placeholder={placeholder}
+            style={inp}
+          />
+        </>
       )}
     </div>
   );
