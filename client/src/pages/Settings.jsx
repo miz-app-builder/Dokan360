@@ -4,7 +4,7 @@ import { useSettings } from "../context/SettingsContext";
 
 // Display tab is for all users; other tabs are admin-only
 const TABS = [
-  { key: "display",   label: "🎨 আমার Display",    adminOnly: false },
+  { key: "display",   label: "🎨 Display",    adminOnly: false },
   { key: "shop",      label: "🏪 Shop Info",        adminOnly: true  },
   { key: "outlets",   label: "🏬 Outlets",          adminOnly: true  },
   { key: "billing",   label: "💰 Billing & Tax",    adminOnly: true  },
@@ -379,7 +379,7 @@ export default function Settings() {
       {tab === "display" && (
         <div style={card}>
           <div style={cardHdr}>
-            <b>🎨 আমার Display Settings</b>
+            <b>🎨 Display Settings</b>
           </div>
           <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 24 }}>
 
