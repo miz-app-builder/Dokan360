@@ -3,6 +3,12 @@ import cors from "cors";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { createClient } from "@supabase/supabase-js";
+import path from "path";
+import { fileURLToPath } from "url";
+import { existsSync } from "fs";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(cors());
@@ -19,12 +25,6 @@ const supabase = createClient(
   process.env.SUPABASE_ANON_KEY
 );
 
-/* =========================
-   TEST ROUTE
-========================= */
-app.get("/", (req, res) => {
-  res.send("POS Backend Running ✅");
-});
 
 /* =========================
    🔐 AUTH MIDDLEWARE (Phase 5.3)
@@ -1280,8 +1280,20 @@ app.delete("/notices/:id", authMiddleware, async (req, res) => {
 });
 
 /* =========================
+   STATIC FILES (Production)
+========================= */
+const clientDist = path.join(__dirname, "client", "dist");
+if (existsSync(clientDist)) {
+  app.use(express.static(clientDist));
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(clientDist, "index.html"));
+  });
+}
+
+/* =========================
    🚀 START SERVER
 ========================= */
-app.listen(3000, "0.0.0.0", () => {
-  console.log("🚀 POS Backend running on port 3000");
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 POS Backend running on port ${PORT}`);
 });
