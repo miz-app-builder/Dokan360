@@ -1,122 +1,147 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useEffect, useState } from "react";
+import { API } from "./api";
 
-function App() {
-  const [count, setCount] = useState(0)
+export default function App() {
+  const [products, setProducts] = useState([]);
+  const [cart, setCart] = useState([]);
 
+  // =========================
+  // LOAD PRODUCTS
+  // =========================
+  useEffect(() => {
+    API.get("/products")
+      .then(res => setProducts(res.data))
+      .catch(err => console.log(err));
+  }, []);
+
+  // =========================
+  // ADD TO CART
+  // =========================
+  const addToCart = (product) => {
+    const exist = cart.find(i => i.id === product.id);
+
+    if (exist) {
+      setCart(cart.map(i =>
+        i.id === product.id
+          ? { ...i, qty: i.qty + 1 }
+          : i
+      ));
+    } else {
+      setCart([...cart, { ...product, qty: 1 }]);
+    }
+  };
+
+  // =========================
+  // INCREASE
+  // =========================
+  const increase = (id) => {
+    setCart(cart.map(i =>
+      i.id === id ? { ...i, qty: i.qty + 1 } : i
+    ));
+  };
+
+  // =========================
+  // DECREASE
+  // =========================
+  const decrease = (id) => {
+    setCart(cart.map(i =>
+      i.id === id && i.qty > 1
+        ? { ...i, qty: i.qty - 1 }
+        : i
+    ));
+  };
+
+  // =========================
+  // REMOVE
+  // =========================
+  const remove = (id) => {
+    setCart(cart.filter(i => i.id !== id));
+  };
+
+  // =========================
+  // TOTAL
+  // =========================
+  const total = cart.reduce(
+    (sum, i) => sum + i.sell_price * i.qty,
+    0
+  );
+
+  // =========================
+  // CHECKOUT
+  // =========================
+  const checkout = () => {
+    API.post("/sales", {
+      items: cart,
+      total,
+      paid_amount: total
+    })
+    .then(() => {
+      alert("Sale Completed ✅");
+      setCart([]);
+    })
+    .catch(err => console.log(err));
+  };
+
+  // =========================
+  // UI
+  // =========================
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
+    <div style={{ display: "flex", padding: 10, gap: 20 }}>
+
+      {/* PRODUCTS */}
+      <div style={{ width: "45%" }}>
+        <h2>📦 Products</h2>
+
+        {products.map(p => (
+          <div key={p.id} style={{
+            border: "1px solid #ddd",
+            padding: 10,
+            marginBottom: 10
+          }}>
+            <b>{p.name}</b>
+            <p>{p.sell_price} ৳</p>
+
+            <button onClick={() => addToCart(p)}>
+              ➕ Add
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* CART */}
+      <div style={{ width: "45%" }}>
+        <h2>🛒 Cart</h2>
+
+        {cart.map(i => (
+          <div key={i.id} style={{
+            borderBottom: "1px solid #ccc",
+            padding: 10
+          }}>
+            <b>{i.name}</b>
+
+            <div>
+              <button onClick={() => decrease(i.id)}>-</button>
+              <span> {i.qty} </span>
+              <button onClick={() => increase(i.id)}>+</button>
+            </div>
+
+            <p>Subtotal: {i.qty * i.sell_price}</p>
+
+            <button onClick={() => remove(i.id)}>
+              ❌ Remove
+            </button>
+          </div>
+        ))}
+
+        <hr />
+
+        <h3>💰 Total: {total} ৳</h3>
+
+        <button onClick={checkout}>
+          ✅ Checkout
         </button>
-      </section>
+      </div>
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+    </div>
+  );
 }
-
-export default App
