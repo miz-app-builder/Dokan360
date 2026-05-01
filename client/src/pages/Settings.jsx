@@ -380,26 +380,8 @@ export default function Settings() {
         <div style={card}>
           <div style={cardHdr}>
             <b>🎨 আমার Display Settings</b>
-            <span style={{ fontSize: 12, color: "#6b7280", fontWeight: "normal" }}>
-              এই সেটিংস আপনার account-এ save হয় — যেকোনো device থেকে login করলেই পাবেন
-            </span>
           </div>
           <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 24 }}>
-
-            {/* User info badge */}
-            <div style={{ background: "#eef2ff", border: "1px solid #c7d2fe", borderRadius: 10, padding: "10px 16px", display: "flex", alignItems: "center", gap: 10 }}>
-              <span style={{ fontSize: 22 }}>👤</span>
-              <div>
-                <div style={{ fontWeight: "bold", color: "#4f46e5" }}>{currentUser?.name || currentUser?.username}</div>
-                <div style={{ fontSize: 12, color: "#6b7280" }}>
-                  @{currentUser?.username} &nbsp;·&nbsp;
-                  {currentUser?.role === "admin" ? "👑 Admin" : currentUser?.role === "seller" ? "🛒 Seller" : "👁️ Viewer"}
-                </div>
-              </div>
-              <div style={{ marginLeft: "auto", fontSize: 11, color: "#9ca3af" }}>
-                ☁️ Server-এ Saved
-              </div>
-            </div>
 
             <Section label="🌐 Language / ভাষা">
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
