@@ -699,55 +699,115 @@ app.post("/sales", async (req, res) => {
 });
 
 /* =========================
-   👤 USER MANAGEMENT API (Phase 5.8) — Admin only
+   👤 USER MANAGEMENT API — Admin only
 ========================= */
 
-// GET all users
+const USER_PROFILE_FIELDS = "id, username, role, is_active, name, father_name, mother_name, present_address, permanent_address, email, phone, blood_group, join_date, reference, emergency_contact, nid_number, photo_url, created_at";
+
+// GET all users (with profile summary)
 app.get("/users", adminOnly, async (req, res) => {
   const { data, error } = await supabase
     .from("users")
-    .select("id, username, role, created_at")
+    .select("id, username, role, is_active, name, phone, email, photo_url, join_date, created_at")
     .order("created_at");
   if (error) return res.status(500).json({ error: error.message });
   res.json(data);
 });
 
-// POST — create user
+// GET single user — full profile
+app.get("/users/:id", adminOnly, async (req, res) => {
+  const { id } = req.params;
+  const { data, error } = await supabase
+    .from("users")
+    .select(USER_PROFILE_FIELDS)
+    .eq("id", id)
+    .single();
+  if (error) return res.status(404).json({ error: "User পাওয়া যায়নি।" });
+  res.json(data);
+});
+
+// POST — create user (with profile fields)
 app.post("/users", adminOnly, async (req, res) => {
-  const { username, password, role } = req.body;
+  const { username, password, role, name, email, phone, join_date } = req.body;
   if (!username || !password) return res.status(400).json({ error: "Username ও password দিন।" });
   if (!["admin", "seller", "viewer"].includes(role)) return res.status(400).json({ error: "Role ভুল।" });
 
   const hash = await bcrypt.hash(password, 10);
   const { data, error } = await supabase
     .from("users")
-    .insert([{ username: username.trim(), password_hash: hash, role }])
-    .select("id, username, role")
+    .insert([{
+      username: username.trim(),
+      password_hash: hash,
+      role,
+      name: name?.trim() || null,
+      email: email?.trim() || null,
+      phone: phone?.trim() || null,
+      join_date: join_date || null,
+      is_active: true,
+    }])
+    .select("id, username, role, name, email, phone")
     .single();
 
   if (error) return res.status(500).json({ error: error.message });
   res.json(data);
 });
 
-// PUT — update user role or password
+// PUT — update user (role, password, and all profile fields)
 app.put("/users/:id", adminOnly, async (req, res) => {
   const { id } = req.params;
-  const { role, password } = req.body;
+  const {
+    role, password, is_active,
+    name, father_name, mother_name,
+    present_address, permanent_address,
+    email, phone, blood_group,
+    join_date, reference, emergency_contact, nid_number,
+  } = req.body;
 
   const updates = {};
-  if (role) updates.role = role;
-  if (password) updates.password_hash = await bcrypt.hash(password, 10);
+  if (role !== undefined) updates.role = role;
+  if (password)           updates.password_hash = await bcrypt.hash(password, 10);
+  if (is_active !== undefined) updates.is_active = is_active;
+  if (name !== undefined)              updates.name = name;
+  if (father_name !== undefined)       updates.father_name = father_name;
+  if (mother_name !== undefined)       updates.mother_name = mother_name;
+  if (present_address !== undefined)   updates.present_address = present_address;
+  if (permanent_address !== undefined) updates.permanent_address = permanent_address;
+  if (email !== undefined)             updates.email = email;
+  if (phone !== undefined)             updates.phone = phone;
+  if (blood_group !== undefined)       updates.blood_group = blood_group;
+  if (join_date !== undefined)         updates.join_date = join_date;
+  if (reference !== undefined)         updates.reference = reference;
+  if (emergency_contact !== undefined) updates.emergency_contact = emergency_contact;
+  if (nid_number !== undefined)        updates.nid_number = nid_number;
+
   if (!Object.keys(updates).length) return res.status(400).json({ error: "কিছু পরিবর্তন করুন।" });
 
   const { data, error } = await supabase
     .from("users")
     .update(updates)
     .eq("id", id)
-    .select("id, username, role")
+    .select(USER_PROFILE_FIELDS)
     .single();
 
   if (error) return res.status(500).json({ error: error.message });
   res.json(data);
+});
+
+// POST — upload photo (base64)
+app.post("/users/:id/photo", adminOnly, async (req, res) => {
+  const { id } = req.params;
+  const { photo_base64 } = req.body;
+  if (!photo_base64) return res.status(400).json({ error: "photo_base64 দেওয়া আবশ্যক।" });
+
+  const { data, error } = await supabase
+    .from("users")
+    .update({ photo_url: photo_base64 })
+    .eq("id", id)
+    .select("id, photo_url")
+    .single();
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ success: true, photo_url: data.photo_url });
 });
 
 // DELETE — delete user (cannot delete self)
@@ -759,6 +819,42 @@ app.delete("/users/:id", adminOnly, async (req, res) => {
   const { error } = await supabase.from("users").delete().eq("id", id);
   if (error) return res.status(500).json({ error: error.message });
   res.json({ success: true });
+});
+
+/* =========================
+   🔐 ROLE PERMISSIONS API — Admin only
+========================= */
+
+// GET all permissions (grouped by role)
+app.get("/permissions", adminOnly, async (req, res) => {
+  const { data, error } = await supabase
+    .from("role_permissions")
+    .select("*")
+    .order("role")
+    .order("module");
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// PUT — update a single role+module permission row
+app.put("/permissions/:role/:module", adminOnly, async (req, res) => {
+  const { role, module } = req.params;
+  const { can_view, can_add, can_edit, can_delete } = req.body;
+
+  const { data, error } = await supabase
+    .from("role_permissions")
+    .upsert({
+      role, module,
+      can_view:   !!can_view,
+      can_add:    !!can_add,
+      can_edit:   !!can_edit,
+      can_delete: !!can_delete,
+    }, { onConflict: "role,module" })
+    .select()
+    .single();
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
 });
 
 /* =========================
