@@ -297,7 +297,7 @@ function UserList({ users, currentUser, onOpen, onNew, onDelete }) {
 /* options: [{ value, label }]  — generic custom dropdown (no native OS picker) */
 function CustomSelect({ label, value, onChange, options, placeholder = "— বেছে নিন —", wrapStyle = {} }) {
   const [open, setOpen] = useState(false);
-  const [openUpward, setOpenUpward] = useState(false);
+  const [dropPos, setDropPos] = useState({ top: 0, left: 0, width: 0, upward: false });
   const btnRef = useRef(null);
   const selected = options.find(o => String(o.value) === String(value));
 
@@ -305,7 +305,13 @@ function CustomSelect({ label, value, onChange, options, placeholder = "— ব�
     if (!open && btnRef.current) {
       const rect = btnRef.current.getBoundingClientRect();
       const spaceBelow = window.innerHeight - rect.bottom;
-      setOpenUpward(spaceBelow < 240);
+      const upward = spaceBelow < 240;
+      setDropPos({
+        top: upward ? rect.top : rect.bottom + 2,
+        left: rect.left,
+        width: rect.width,
+        upward,
+      });
     }
     setOpen(o => !o);
   };
@@ -333,20 +339,22 @@ function CustomSelect({ label, value, onChange, options, placeholder = "— ব�
           {selected ? selected.label : placeholder}
         </span>
         <span style={{ fontSize: 10, color: "#9ca3af", flexShrink: 0, marginLeft: 6 }}>
-          {open ? (openUpward ? "▼" : "▲") : "▼"}
+          {open ? (dropPos.upward ? "▼" : "▲") : "▼"}
         </span>
       </button>
       {open && (
         <>
-          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 49 }} />
+          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 999 }} />
           <div style={{
-            position: "absolute",
-            ...(openUpward
-              ? { bottom: "100%", marginBottom: 2 }
-              : { top: "100%", marginTop: 2 }),
-            left: 0, right: 0, zIndex: 50,
+            position: "fixed",
+            zIndex: 1000,
+            left: dropPos.left,
+            width: dropPos.width,
+            ...(dropPos.upward
+              ? { bottom: window.innerHeight - dropPos.top, top: "auto" }
+              : { top: dropPos.top }),
             background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8,
-            boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
             maxHeight: 220, overflowY: "auto",
           }}>
             {options.map(o => (
