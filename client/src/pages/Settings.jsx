@@ -2,12 +2,13 @@ import { useEffect, useState, useRef } from "react";
 import { API } from "../api";
 import { useSettings } from "../context/SettingsContext";
 
+// Display tab is for all users; other tabs are admin-only
 const TABS = [
-  { key: "shop",      label: "🏪 Shop Info" },
-  { key: "outlets",   label: "🏬 Outlets" },
-  { key: "display",   label: "🎨 Display" },
-  { key: "billing",   label: "💰 Billing & Tax" },
-  { key: "receipt",   label: "🧾 Receipt" },
+  { key: "display",   label: "🎨 আমার Display",    adminOnly: false },
+  { key: "shop",      label: "🏪 Shop Info",        adminOnly: true  },
+  { key: "outlets",   label: "🏬 Outlets",          adminOnly: true  },
+  { key: "billing",   label: "💰 Billing & Tax",    adminOnly: true  },
+  { key: "receipt",   label: "🧾 Receipt",          adminOnly: true  },
 ];
 
 const LANGUAGES = [
@@ -37,12 +38,32 @@ const CURRENCIES = [
   { value: "د.إ", label: "د.إ — UAE Dirham (AED)" },
 ];
 
+function getCurrentUser() {
+  try { return JSON.parse(localStorage.getItem("dokan360_user")); } catch { return null; }
+}
+
 export default function Settings() {
-  const { settings, loadSettings } = useSettings();
-  const [tab, setTab] = useState("shop");
+  const { settings, loadSettings, updateDisplayPrefs } = useSettings();
+  const currentUser = getCurrentUser();
+  const isAdmin     = currentUser?.role === "admin";
+
+  // Non-admins start on Display tab; admins start on Shop tab
+  const [tab, setTab] = useState(isAdmin ? "shop" : "display");
+
+  // Global settings form (admin-only fields)
   const [form, setForm] = useState({});
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState({ type: "", text: "" });
+
+  // Display prefs form (per-user)
+  const [displayForm, setDisplayForm] = useState({
+    language:  settings.language  || "bn",
+    font_size: settings.font_size || "medium",
+    theme:     settings.theme     || "light",
+  });
+  const [displaySaved, setDisplaySaved] = useState(false);
+
+  // Outlets
   const [outlets, setOutlets] = useState([]);
   const [outletForm, setOutletForm] = useState({ name: "", address: "", phone: "", is_active: true });
   const [editingOutlet, setEditingOutlet] = useState(null);
@@ -50,10 +71,20 @@ export default function Settings() {
   const [logoPreview, setLogoPreview] = useState("");
   const logoRef = useRef(null);
 
+  // Sync global settings form (non-display fields)
   useEffect(() => {
     setForm({ ...settings });
     setLogoPreview(settings.shop_logo || "");
   }, [settings]);
+
+  // Sync display prefs form when settings load
+  useEffect(() => {
+    setDisplayForm({
+      language:  settings.language  || "bn",
+      font_size: settings.font_size || "medium",
+      theme:     settings.theme     || "light",
+    });
+  }, [settings.language, settings.font_size, settings.theme]);
 
   useEffect(() => {
     loadOutlets();
@@ -68,6 +99,14 @@ export default function Settings() {
   };
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const setDisp = (k, v) => setDisplayForm(f => ({ ...f, [k]: v }));
+
+  // Save per-user display prefs (to localStorage only)
+  const handleDisplaySave = () => {
+    updateDisplayPrefs(displayForm);
+    setDisplaySaved(true);
+    setTimeout(() => setDisplaySaved(false), 2500);
+  };
 
   const handleLogoChange = (e) => {
     const file = e.target.files[0];
@@ -93,6 +132,7 @@ export default function Settings() {
     reader.readAsDataURL(file);
   };
 
+  // Save global settings to server (admin-only; NO display prefs)
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -103,9 +143,6 @@ export default function Settings() {
         shop_phone:      form.shop_phone       || "",
         shop_email:      form.shop_email       || "",
         currency_symbol: form.currency_symbol  || "৳",
-        language:        form.language         || "bn",
-        font_size:       form.font_size        || "medium",
-        theme:           form.theme            || "light",
         tax_enabled:     form.tax_enabled      || "false",
         tax_rate:        String(form.tax_rate  || "0"),
         tax_label:       form.tax_label        || "VAT",
@@ -180,7 +217,7 @@ export default function Settings() {
       )}
 
       <div style={{ display: "flex", gap: 6, marginBottom: 24, flexWrap: "wrap" }}>
-        {TABS.map(t => (
+        {TABS.filter(t => !t.adminOnly || isAdmin).map(t => (
           <button key={t.key} onClick={() => setTab(t.key)} style={{
             padding: "9px 18px",
             background: tab === t.key ? "#4f46e5" : "#f3f4f6",
@@ -313,13 +350,33 @@ export default function Settings() {
       {/* ── DISPLAY TAB ── */}
       {tab === "display" && (
         <div style={card}>
-          <div style={cardHdr}><b>🎨 Display Settings</b></div>
+          <div style={cardHdr}>
+            <b>🎨 আমার Display Settings</b>
+            <span style={{ fontSize: 12, color: "#6b7280", fontWeight: "normal" }}>
+              এই সেটিংস শুধু আপনার account এর জন্য — অন্যরা দেখতে পাবে না
+            </span>
+          </div>
           <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 24 }}>
+
+            {/* User info badge */}
+            <div style={{ background: "#eef2ff", border: "1px solid #c7d2fe", borderRadius: 10, padding: "10px 16px", display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ fontSize: 22 }}>👤</span>
+              <div>
+                <div style={{ fontWeight: "bold", color: "#4f46e5" }}>{currentUser?.name || currentUser?.username}</div>
+                <div style={{ fontSize: 12, color: "#6b7280" }}>
+                  @{currentUser?.username} &nbsp;·&nbsp;
+                  {currentUser?.role === "admin" ? "👑 Admin" : currentUser?.role === "seller" ? "🛒 Seller" : "👁️ Viewer"}
+                </div>
+              </div>
+              <div style={{ marginLeft: "auto", fontSize: 11, color: "#9ca3af" }}>
+                🔒 Personal Preferences
+              </div>
+            </div>
 
             <Section label="🌐 Language / ভাষা">
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                 {LANGUAGES.map(l => (
-                  <ChoiceBtn key={l.value} active={form.language === l.value} onClick={() => set("language", l.value)}>
+                  <ChoiceBtn key={l.value} active={displayForm.language === l.value} onClick={() => setDisp("language", l.value)}>
                     {l.label}
                   </ChoiceBtn>
                 ))}
@@ -329,13 +386,13 @@ export default function Settings() {
             <Section label="🔤 Font Size / ফন্ট সাইজ">
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                 {FONT_SIZES.map(f => (
-                  <ChoiceBtn key={f.value} active={form.font_size === f.value} onClick={() => set("font_size", f.value)}>
+                  <ChoiceBtn key={f.value} active={displayForm.font_size === f.value} onClick={() => setDisp("font_size", f.value)}>
                     {f.label}
                   </ChoiceBtn>
                 ))}
               </div>
               <p style={{ margin: "8px 0 0", fontSize: 12, color: "#6b7280" }}>
-                Preview: <span style={{ fontSize: { small: "13px", medium: "15px", large: "17px" }[form.font_size] }}>
+                Preview: <span style={{ fontSize: { small: "13px", medium: "15px", large: "17px" }[displayForm.font_size] }}>
                   এটি একটি sample text।
                 </span>
               </p>
@@ -344,32 +401,36 @@ export default function Settings() {
             <Section label="🎨 Theme / থিম">
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                 {THEMES.map(t => (
-                  <ChoiceBtn key={t.value} active={form.theme === t.value} onClick={() => set("theme", t.value)}>
-                    {t.label}
+                  <ChoiceBtn key={t.value} active={displayForm.theme === t.value} onClick={() => setDisp("theme", t.value)}>
+                    {t.value === "light"  ? "☀️ Light"  :
+                     t.value === "dark"   ? "🌙 Dark"   :
+                     t.value === "purple" ? "💜 Purple" : t.label}
                   </ChoiceBtn>
                 ))}
               </div>
               <p style={{ margin: "8px 0 0", fontSize: 12, color: "#6b7280" }}>
-                Theme পরিবর্তন করলে পরবর্তী login থেকে apply হবে।
+                থিম সঙ্গে সঙ্গে apply হবে এবং পরের login এও মনে থাকবে।
               </p>
             </Section>
 
-            <Section label="⚠️ Low Stock Alert Limit">
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <input
-                  type="number"
-                  min="0"
-                  value={form.low_stock_alert || "10"}
-                  onChange={e => set("low_stock_alert", e.target.value)}
-                  style={{ ...inputStyle, width: 100 }}
-                />
-                <span style={{ fontSize: 14, color: "#6b7280" }}>
-                  এর নিচে stock গেলে alert দেখাবে
+            {/* Save button */}
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <button
+                onClick={handleDisplaySave}
+                style={{
+                  padding: "12px 28px", background: "#4f46e5", color: "#fff",
+                  border: "none", borderRadius: 8, fontWeight: "bold",
+                  fontSize: 15, cursor: "pointer",
+                }}>
+                💾 আমার সেটিংস Save করুন
+              </button>
+              {displaySaved && (
+                <span style={{ color: "#16a34a", fontWeight: "bold", fontSize: 14 }}>
+                  ✅ সফলভাবে save হয়েছে!
                 </span>
-              </div>
-            </Section>
+              )}
+            </div>
 
-            <SaveBtn onClick={handleSave} saving={saving} />
           </div>
         </div>
       )}

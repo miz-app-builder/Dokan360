@@ -16,7 +16,7 @@ export default function Navbar({ activePage, setPage, user, perms = {}, onLogout
     { key: "inventory",  label: "🏭 Inventory" },
     { key: "reports",    label: "📊 Reports" },
     { key: "admin",      label: "⚙️ Admin",     adminOnly: true },
-    { key: "settings",   label: "🔧 Settings",  adminOnly: true },
+    { key: "settings",   label: "🔧 Settings",  adminOnly: false },
   ].filter(l => l.adminOnly ? isAdmin : canView(l.key));
 
   const roleLabel = { admin: "👑 Admin", seller: "🛒 Seller", viewer: "👁️ Viewer" };
