@@ -843,7 +843,7 @@ app.post("/sales", async (req, res) => {
    👤 USER MANAGEMENT API — Admin only
 ========================= */
 
-const USER_PROFILE_FIELDS = "id, username, role, is_active, name, father_name, mother_name, present_address, permanent_address, email, phone, blood_group, join_date, reference, emergency_contact, nid_number, photo_url, outlet_id, created_at";
+const USER_PROFILE_FIELDS = "id, username, role, is_active, name, father_name, mother_name, present_address, permanent_address, email, phone, blood_group, join_date, reference, emergency_contact, nid_number, photo_url, created_at";
 
 // GET all users (with profile summary)
 app.get("/users", adminOnly, async (req, res) => {
@@ -901,7 +901,7 @@ app.put("/users/:id", adminOnly, async (req, res) => {
     name, father_name, mother_name,
     present_address, permanent_address,
     email, phone, blood_group,
-    join_date, reference, emergency_contact, nid_number, outlet_id,
+    join_date, reference, emergency_contact, nid_number,
   } = req.body;
 
   const updates = {};
@@ -920,7 +920,6 @@ app.put("/users/:id", adminOnly, async (req, res) => {
   if (reference !== undefined)         updates.reference = reference;
   if (emergency_contact !== undefined) updates.emergency_contact = emergency_contact;
   if (nid_number !== undefined)        updates.nid_number = nid_number;
-  if (outlet_id !== undefined)         updates.outlet_id = outlet_id || null;
 
   if (!Object.keys(updates).length) return res.status(400).json({ error: "কিছু পরিবর্তন করুন।" });
 

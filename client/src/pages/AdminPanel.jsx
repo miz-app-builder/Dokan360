@@ -25,7 +25,7 @@ const EMPTY_PROFILE = {
   email: "", phone: "", blood_group: "",
   join_date: "", reference: "", emergency_contact: "",
   nid_number: "", role: "seller", password: "",
-  is_active: true, username: "", outlet_id: "",
+  is_active: true, username: "",
 };
 
 /* ═══════════════════════════════════════
@@ -34,7 +34,6 @@ const EMPTY_PROFILE = {
 export default function AdminPanel({ currentUser }) {
   const [tab, setTab] = useState("users");
   const [users, setUsers] = useState([]);
-  const [outlets, setOutlets] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [showNewForm, setShowNewForm] = useState(false);
   const [msg, setMsg] = useState({ type: "", text: "" });
@@ -58,7 +57,6 @@ export default function AdminPanel({ currentUser }) {
   useEffect(() => {
     loadUsers();
     loadPermissions();
-    API.get("/outlets").then(r => setOutlets(r.data || [])).catch(() => {});
   }, []);
 
   const showMsg = (type, text) => {
@@ -240,8 +238,7 @@ function UserList({ users, currentUser, onOpen, onNew, onDelete }) {
                 </div>
                 <div style={{ fontSize: 12, color: "#9ca3af" }}>@{u.username}</div>
                 {u.phone && <div style={{ fontSize: 12, color: "#6b7280" }}>📞 {u.phone}</div>}
-                {u.outlet_id && (() => { const o = outlets.find(x => x.id === u.outlet_id); return o ? <div style={{ fontSize: 11, color: "#4f46e5", marginTop: 2 }}>🏬 {o.name}</div> : null; })()}
-              </div>
+                </div>
             </div>
 
             {/* Role + Status */}
@@ -299,12 +296,7 @@ function UserProfile({ user, isNew, currentUser, onSaved, onBack, showMsg }) {
   const [photo, setPhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [outlets, setOutlets] = useState([]);
   const fileRef = useRef(null);
-
-  useEffect(() => {
-    API.get("/outlets").then(r => setOutlets(r.data || [])).catch(() => {});
-  }, []);
 
   useEffect(() => {
     if (user) {
@@ -317,7 +309,6 @@ function UserProfile({ user, isNew, currentUser, onSaved, onBack, showMsg }) {
         reference: user.reference || "", emergency_contact: user.emergency_contact || "",
         nid_number: user.nid_number || "", role: user.role || "seller",
         password: "", is_active: user.is_active !== false, username: user.username || "",
-        outlet_id: user.outlet_id ? String(user.outlet_id) : "",
       });
       setPhotoPreview(user.photo_url || null);
       setPhoto(null);
@@ -366,7 +357,6 @@ function UserProfile({ user, isNew, currentUser, onSaved, onBack, showMsg }) {
     setSaving(true);
     try {
       let savedUser;
-      const outletIdVal = form.outlet_id ? parseInt(form.outlet_id) : null;
       if (isNew) {
         const r = await API.post("/users", {
           username: form.username.trim(), password: form.password,
@@ -379,7 +369,7 @@ function UserProfile({ user, isNew, currentUser, onSaved, onBack, showMsg }) {
           present_address: form.present_address, permanent_address: form.permanent_address,
           blood_group: form.blood_group, reference: form.reference,
           emergency_contact: form.emergency_contact, nid_number: form.nid_number,
-          is_active: form.is_active, outlet_id: outletIdVal,
+          is_active: form.is_active,
         });
       } else {
         const body = {
@@ -390,7 +380,6 @@ function UserProfile({ user, isNew, currentUser, onSaved, onBack, showMsg }) {
           phone: form.phone, blood_group: form.blood_group,
           join_date: form.join_date || null, reference: form.reference,
           emergency_contact: form.emergency_contact, nid_number: form.nid_number,
-          outlet_id: outletIdVal,
         };
         if (form.password) body.password = form.password;
         const r = await API.put(`/users/${user.id}`, body);
@@ -471,15 +460,6 @@ function UserProfile({ user, isNew, currentUser, onSaved, onBack, showMsg }) {
                 {ROLES.map(r => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
               </select>
             </div>
-            {outlets.length > 0 && (
-              <div style={{ marginBottom: 10 }}>
-                <label style={lbl}>🏬 Outlet (ঐচ্ছিক)</label>
-                <select value={form.outlet_id} onChange={e => set("outlet_id", e.target.value)} style={inp}>
-                  <option value="">— Outlet নির্ধারণ করুন —</option>
-                  {outlets.map(o => <option key={o.id} value={String(o.id)}>{o.name}</option>)}
-                </select>
-              </div>
-            )}
             <div style={{ marginBottom: 10 }}>
               <label style={lbl}>{isNew ? "Password *" : "নতুন Password (ঐচ্ছিক)"}</label>
               <input type="password" value={form.password} onChange={e => set("password", e.target.value)}
