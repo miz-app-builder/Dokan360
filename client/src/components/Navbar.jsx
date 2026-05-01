@@ -4,6 +4,7 @@ export default function Navbar({ activePage, setPage }) {
     { key: "products",   label: "📦 Products" },
     { key: "categories", label: "🗂️ Categories" },
     { key: "customers",  label: "👥 Customers" },
+    { key: "inventory",  label: "🏭 Inventory" },
   ];
 
   return (

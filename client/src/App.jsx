@@ -5,6 +5,7 @@ import Categories from "./pages/Categories";
 import Products from "./pages/Products";
 import Customers from "./pages/Customers";
 import CustomerLedger from "./pages/CustomerLedger";
+import Inventory from "./pages/Inventory";
 
 export default function App() {
   const [page, setPage] = useState("pos");
@@ -166,6 +167,13 @@ export default function App() {
             customer={ledgerCustomer}
             onBack={() => setLedgerCustomer(null)}
           />
+        </div>
+      )}
+
+      {/* ===== INVENTORY PAGE ===== */}
+      {page === "inventory" && (
+        <div style={{ flex: 1, overflowY: "auto" }}>
+          <Inventory />
         </div>
       )}
 

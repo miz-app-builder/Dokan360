@@ -204,6 +204,107 @@ app.get("/customers/:id/ledger", async (req, res) => {
 });
 
 /* =========================
+   📦 INVENTORY / STOCK API
+========================= */
+
+// Phase 3.1 — POST /stock/in — stock কেনা/restock রেকর্ড করা
+app.post("/stock/in", async (req, res) => {
+  const { product_id, quantity, cost_price, note } = req.body;
+  if (!product_id) return res.status(400).json({ error: "product_id দেওয়া আবশ্যক।" });
+  if (!quantity || quantity <= 0) return res.status(400).json({ error: "সঠিক পরিমাণ দিন।" });
+
+  // Get current product
+  const { data: product, error: prodErr } = await supabase
+    .from("products")
+    .select("id, name, stock")
+    .eq("id", product_id)
+    .single();
+
+  if (prodErr || !product) return res.status(404).json({ error: "Product পাওয়া যায়নি।" });
+
+  // Insert stock log
+  const { error: logErr } = await supabase
+    .from("stock_logs")
+    .insert([{
+      product_id,
+      change_qty: quantity,
+      type: "IN",
+      note: note || null,
+      cost_price: cost_price || null,
+    }]);
+
+  if (logErr) return res.status(500).json({ error: logErr.message });
+
+  // Update product stock
+  const newStock = (product.stock || 0) + parseInt(quantity);
+  const { error: updateErr } = await supabase
+    .from("products")
+    .update({ stock: newStock, buy_price: cost_price || undefined })
+    .eq("id", product_id);
+
+  if (updateErr) return res.status(500).json({ error: updateErr.message });
+
+  res.json({ success: true, product_name: product.name, new_stock: newStock });
+});
+
+// Phase 3.2 — GET /stock/logs — সব stock movement দেখা
+app.get("/stock/logs", async (req, res) => {
+  const { product_id, type, limit: lim } = req.query;
+
+  let query = supabase
+    .from("stock_logs")
+    .select("id, product_id, change_qty, type, note, cost_price, created_at, products(name)")
+    .order("created_at", { ascending: false })
+    .limit(parseInt(lim) || 200);
+
+  if (product_id) query = query.eq("product_id", product_id);
+  if (type) query = query.eq("type", type.toUpperCase());
+
+  const { data, error } = await query;
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// Phase 3.6 — POST /stock/adjust — manually stock সংশোধন
+app.post("/stock/adjust", async (req, res) => {
+  const { product_id, new_stock, reason } = req.body;
+  if (!product_id) return res.status(400).json({ error: "product_id দেওয়া আবশ্যক।" });
+  if (new_stock === undefined || new_stock < 0) return res.status(400).json({ error: "সঠিক stock পরিমাণ দিন।" });
+
+  const { data: product, error: prodErr } = await supabase
+    .from("products")
+    .select("id, name, stock")
+    .eq("id", product_id)
+    .single();
+
+  if (prodErr || !product) return res.status(404).json({ error: "Product পাওয়া যায়নি।" });
+
+  const diff = parseInt(new_stock) - (product.stock || 0);
+
+  // Log the adjustment
+  const { error: logErr } = await supabase
+    .from("stock_logs")
+    .insert([{
+      product_id,
+      change_qty: diff,
+      type: "ADJUST",
+      note: reason || "Manual adjustment",
+    }]);
+
+  if (logErr) return res.status(500).json({ error: logErr.message });
+
+  // Update stock
+  const { error: updateErr } = await supabase
+    .from("products")
+    .update({ stock: parseInt(new_stock) })
+    .eq("id", product_id);
+
+  if (updateErr) return res.status(500).json({ error: updateErr.message });
+
+  res.json({ success: true, product_name: product.name, old_stock: product.stock, new_stock: parseInt(new_stock), diff });
+});
+
+/* =========================
    💳 MANUAL PAYMENT API (Phase 2.6)
 ========================= */
 
