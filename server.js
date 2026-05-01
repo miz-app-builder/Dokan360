@@ -15,6 +15,13 @@ app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
+app.use((req, res, next) => {
+  if (req.path.startsWith("/api/")) {
+    req.url = req.url.replace(/^\/api/, "");
+  }
+  next();
+});
+
 const JWT_SECRET = process.env.SESSION_SECRET || "dokan360_secret_key";
 
 /* =========================
@@ -1285,7 +1292,7 @@ app.delete("/notices/:id", authMiddleware, async (req, res) => {
 const clientDist = path.join(__dirname, "client", "dist");
 if (existsSync(clientDist)) {
   app.use(express.static(clientDist));
-  app.get("*", (req, res) => {
+  app.get(/.*/, (req, res) => {
     res.sendFile(path.join(clientDist, "index.html"));
   });
 }
