@@ -345,6 +345,7 @@ function AppInner({ onUserChange }) {
             <div className="pos-cart" style={{
               width: 340, flexShrink: 0,
               display: "flex", flexDirection: "column",
+              overflow: "hidden",
               background: "rgba(255,255,255,0.55)",
               backdropFilter: "blur(20px)",
               WebkitBackdropFilter: "blur(20px)",
