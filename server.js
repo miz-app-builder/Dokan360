@@ -1174,8 +1174,8 @@ app.put("/user/display-prefs", async (req, res) => {
    📢 NOTICES
 ========================= */
 
-// GET /api/notices/active — no auth required, returns currently live notices
-app.get("/api/notices/active", async (req, res) => {
+// GET /notices/active — no auth required, returns currently live notices
+app.get("/notices/active", async (req, res) => {
   try {
     const now = new Date().toISOString();
     const { data, error } = await supabase
@@ -1190,8 +1190,8 @@ app.get("/api/notices/active", async (req, res) => {
   } catch { res.json({ notices: [] }); }
 });
 
-// GET /api/notices — all notices (admin)
-app.get("/api/notices", authMiddleware, async (req, res) => {
+// GET /notices — all notices (admin)
+app.get("/notices", authMiddleware, async (req, res) => {
   const { data, error } = await supabase
     .from("notices")
     .select("*")
@@ -1200,8 +1200,8 @@ app.get("/api/notices", authMiddleware, async (req, res) => {
   res.json({ notices: data || [] });
 });
 
-// POST /api/notices — create notice (admin)
-app.post("/api/notices", authMiddleware, async (req, res) => {
+// POST /notices — create notice (admin)
+app.post("/notices", authMiddleware, async (req, res) => {
   if (req.user.role !== "admin") return res.status(403).json({ error: "শুধু Admin পারবে।" });
   const { text, publish_at, duration_hours } = req.body;
   if (!text?.trim()) return res.status(400).json({ error: "Notice text দিন।" });
@@ -1223,8 +1223,8 @@ app.post("/api/notices", authMiddleware, async (req, res) => {
   res.json({ notice: data });
 });
 
-// PUT /api/notices/:id — update / toggle (admin)
-app.put("/api/notices/:id", authMiddleware, async (req, res) => {
+// PUT /notices/:id — update / toggle (admin)
+app.put("/notices/:id", authMiddleware, async (req, res) => {
   if (req.user.role !== "admin") return res.status(403).json({ error: "শুধু Admin পারবে।" });
   const { id } = req.params;
   const { text, publish_at, duration_hours, is_active } = req.body;
@@ -1247,8 +1247,8 @@ app.put("/api/notices/:id", authMiddleware, async (req, res) => {
   res.json({ notice: data });
 });
 
-// DELETE /api/notices/:id (admin)
-app.delete("/api/notices/:id", authMiddleware, async (req, res) => {
+// DELETE /notices/:id (admin)
+app.delete("/notices/:id", authMiddleware, async (req, res) => {
   if (req.user.role !== "admin") return res.status(403).json({ error: "শুধু Admin পারবে।" });
   const { error } = await supabase.from("notices").delete().eq("id", req.params.id);
   if (error) return res.status(500).json({ error: error.message });
