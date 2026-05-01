@@ -292,6 +292,62 @@ function UserList({ users, currentUser, onOpen, onNew, onDelete }) {
 }
 
 /* ═══════════════════════════════════════
+   OUTLET PICKER — custom styled, no native OS picker
+═══════════════════════════════════════ */
+function OutletPicker({ outlets, value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const selected = outlets.find(o => String(o.id) === String(value));
+  return (
+    <div style={{ marginBottom: 10, position: "relative" }}>
+      <label style={{ display: "block", fontSize: 11, color: "#6b7280", marginBottom: 4, fontWeight: 600 }}>
+        🏬 Outlet (ঐচ্ছিক)
+      </label>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        style={{
+          width: "100%", padding: "8px 12px", borderRadius: 6, fontSize: 13,
+          border: "1px solid #e5e7eb", background: "#fff", cursor: "pointer",
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+          color: selected ? "#1e1b4b" : "#9ca3af", textAlign: "left",
+        }}
+      >
+        <span>{selected ? selected.name : "— Outlet নির্ধারণ করুন —"}</span>
+        <span style={{ fontSize: 10, color: "#9ca3af" }}>{open ? "▲" : "▼"}</span>
+      </button>
+      {open && (
+        <>
+          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 49 }} />
+          <div style={{
+            position: "absolute", top: "100%", left: 0, right: 0, zIndex: 50,
+            background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8,
+            boxShadow: "0 4px 16px rgba(0,0,0,0.12)", overflow: "hidden", marginTop: 2,
+          }}>
+          {[{ id: "", name: "— Outlet নির্ধারণ করুন —" }, ...outlets].map(o => (
+            <div
+              key={o.id}
+              onClick={() => { onChange(String(o.id)); setOpen(false); }}
+              style={{
+                padding: "10px 14px", fontSize: 13, cursor: "pointer",
+                background: String(o.id) === String(value) ? "#eef2ff" : "#fff",
+                color: String(o.id) === String(value) ? "#4f46e5" : (o.id ? "#1e1b4b" : "#9ca3af"),
+                fontWeight: String(o.id) === String(value) ? 600 : 400,
+                borderBottom: "1px solid #f3f4f6",
+                display: "flex", justifyContent: "space-between", alignItems: "center",
+              }}
+            >
+              {o.name}
+              {String(o.id) === String(value) && <span style={{ color: "#4f46e5" }}>✓</span>}
+            </div>
+          ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════
    USER PROFILE FORM
 ═══════════════════════════════════════ */
 function UserProfile({ user, isNew, currentUser, onSaved, onBack, showMsg, outlets = [] }) {
@@ -472,13 +528,11 @@ function UserProfile({ user, isNew, currentUser, onSaved, onBack, showMsg, outle
                 placeholder={isNew ? "" : "পরিবর্তন করতে লিখুন"} style={inp} />
             </div>
             {outlets.length > 0 && (
-              <div style={{ marginBottom: 10 }}>
-                <label style={lbl}>🏬 Outlet (ঐচ্ছিক)</label>
-                <select value={form.outlet_id} onChange={e => set("outlet_id", e.target.value)} style={inp}>
-                  <option value="">— Outlet নির্ধারণ করুন —</option>
-                  {outlets.map(o => <option key={o.id} value={String(o.id)}>{o.name}</option>)}
-                </select>
-              </div>
+              <OutletPicker
+                outlets={outlets}
+                value={form.outlet_id}
+                onChange={v => set("outlet_id", v)}
+              />
             )}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <label style={lbl}>Status</label>
