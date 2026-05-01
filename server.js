@@ -10,8 +10,8 @@ app.use(express.json());
    🔴 SUPABASE CONFIG
 ========================= */
 const supabase = createClient(
-  "https://YOUR_PROJECT.supabase.co",
-  "YOUR_SUPABASE_ANON_KEY"
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_ANON_KEY
 );
 
 /* =========================
