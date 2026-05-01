@@ -589,6 +589,108 @@ app.get("/reports/products", async (req, res) => {
   res.json({ from: dateFrom, to: dateTo, products: result });
 });
 
+// GET /reports/user-wise — user/seller ভিত্তিক বিক্রয় রিপোর্ট
+app.get("/reports/user-wise", async (req, res) => {
+  const { from, to, user_id } = req.query;
+  const dateFrom = from || new Date().toISOString().slice(0, 10);
+  const dateTo   = to   || new Date().toISOString().slice(0, 10);
+  const fromDT   = `${dateFrom}T00:00:00.000Z`;
+  const toDT     = `${dateTo}T23:59:59.999Z`;
+
+  let salesQ = supabase
+    .from("sales")
+    .select("id, total_amount, paid_amount, sold_by, created_at, users(id, username, name)")
+    .gte("created_at", fromDT)
+    .lte("created_at", toDT)
+    .order("created_at", { ascending: false });
+
+  if (user_id) salesQ = salesQ.eq("sold_by", user_id);
+
+  const { data: sales, error: sErr } = await salesQ;
+  if (sErr) return res.status(500).json({ error: sErr.message });
+
+  // Group by user
+  const userMap = {};
+  (sales || []).forEach(s => {
+    const uid  = s.sold_by || "unknown";
+    const uName = s.users?.name || s.users?.username || "Unknown";
+    if (!userMap[uid]) {
+      userMap[uid] = { user_id: uid, user_name: uName, username: s.users?.username || "", sales_count: 0, total_income: 0, total_collected: 0, total_due: 0, sales: [] };
+    }
+    const due = (s.total_amount || 0) - (s.paid_amount || 0);
+    userMap[uid].sales_count++;
+    userMap[uid].total_income    += s.total_amount || 0;
+    userMap[uid].total_collected += s.paid_amount  || 0;
+    userMap[uid].total_due       += due;
+    userMap[uid].sales.push(s);
+  });
+
+  const users = Object.values(userMap).sort((a, b) => b.total_income - a.total_income);
+
+  res.json({
+    from: dateFrom, to: dateTo,
+    total_sales: (sales || []).length,
+    total_income: users.reduce((s, u) => s + u.total_income, 0),
+    users,
+  });
+});
+
+// GET /reports/outlet-wise — outlet ভিত্তিক বিক্রয় রিপোর্ট
+app.get("/reports/outlet-wise", async (req, res) => {
+  const { from, to, outlet_id } = req.query;
+  const dateFrom = from || new Date().toISOString().slice(0, 10);
+  const dateTo   = to   || new Date().toISOString().slice(0, 10);
+  const fromDT   = `${dateFrom}T00:00:00.000Z`;
+  const toDT     = `${dateTo}T23:59:59.999Z`;
+
+  // Get all outlets
+  const { data: outlets } = await supabase.from("outlets").select("id, name, address");
+
+  // Get users with their outlet
+  const { data: allUsers } = await supabase.from("users").select("id, username, name, outlet_id");
+  const userOutletMap = {};
+  (allUsers || []).forEach(u => { userOutletMap[u.id] = u.outlet_id; });
+
+  // Get sales in range
+  let salesQ = supabase
+    .from("sales")
+    .select("id, total_amount, paid_amount, sold_by, created_at")
+    .gte("created_at", fromDT)
+    .lte("created_at", toDT);
+
+  const { data: sales, error: sErr } = await salesQ;
+  if (sErr) return res.status(500).json({ error: sErr.message });
+
+  // Group by outlet
+  const outletMap = {};
+  // "No outlet" group
+  outletMap["none"] = { outlet_id: null, outlet_name: "Outlet নির্ধারিত নেই", sales_count: 0, total_income: 0, total_collected: 0, total_due: 0 };
+
+  (outlets || []).forEach(o => {
+    if (!outlet_id || parseInt(outlet_id) === o.id) {
+      outletMap[o.id] = { outlet_id: o.id, outlet_name: o.name, outlet_address: o.address, sales_count: 0, total_income: 0, total_collected: 0, total_due: 0 };
+    }
+  });
+
+  (sales || []).forEach(s => {
+    const oid   = userOutletMap[s.sold_by] || "none";
+    const target = outletMap[oid] || outletMap["none"];
+    const due    = (s.total_amount || 0) - (s.paid_amount || 0);
+    target.sales_count++;
+    target.total_income    += s.total_amount || 0;
+    target.total_collected += s.paid_amount  || 0;
+    target.total_due       += due;
+  });
+
+  const result = Object.values(outletMap).filter(o => o.sales_count > 0 || !outlet_id);
+
+  res.json({
+    from: dateFrom, to: dateTo,
+    outlets: result,
+    total_income: result.reduce((s, o) => s + o.total_income, 0),
+  });
+});
+
 // Phase 4.4 — GET /reports/due — customer বাকির রিপোর্ট
 app.get("/reports/due", async (req, res) => {
   const { data, error } = await supabase
@@ -653,10 +755,10 @@ app.post("/sales", async (req, res) => {
 
   try {
     // 1. Create sale record
-    // Note: customer_id & paid_amount columns added via SQL migration
     const saleRow = { total_amount: total };
     if (customer_id) saleRow.customer_id = customer_id;
     saleRow.paid_amount = paid_amount || total;
+    if (req.user?.id) saleRow.sold_by = req.user.id;
 
     const { data: sale, error: saleError } = await supabase
       .from("sales")
@@ -666,7 +768,6 @@ app.post("/sales", async (req, res) => {
 
     if (saleError) throw saleError;
 
-    // 2. Insert sale items + update stock
     for (let item of items) {
       await supabase.from("sale_items").insert([{
         sale_id: sale.id,
@@ -718,7 +819,7 @@ app.post("/sales", async (req, res) => {
    👤 USER MANAGEMENT API — Admin only
 ========================= */
 
-const USER_PROFILE_FIELDS = "id, username, role, is_active, name, father_name, mother_name, present_address, permanent_address, email, phone, blood_group, join_date, reference, emergency_contact, nid_number, photo_url, created_at";
+const USER_PROFILE_FIELDS = "id, username, role, is_active, name, father_name, mother_name, present_address, permanent_address, email, phone, blood_group, join_date, reference, emergency_contact, nid_number, photo_url, outlet_id, created_at";
 
 // GET all users (with profile summary)
 app.get("/users", adminOnly, async (req, res) => {
@@ -776,12 +877,12 @@ app.put("/users/:id", adminOnly, async (req, res) => {
     name, father_name, mother_name,
     present_address, permanent_address,
     email, phone, blood_group,
-    join_date, reference, emergency_contact, nid_number,
+    join_date, reference, emergency_contact, nid_number, outlet_id,
   } = req.body;
 
   const updates = {};
-  if (role !== undefined) updates.role = role;
-  if (password)           updates.password_hash = await bcrypt.hash(password, 10);
+  if (role !== undefined)      updates.role = role;
+  if (password)                updates.password_hash = await bcrypt.hash(password, 10);
   if (is_active !== undefined) updates.is_active = is_active;
   if (name !== undefined)              updates.name = name;
   if (father_name !== undefined)       updates.father_name = father_name;
@@ -795,6 +896,7 @@ app.put("/users/:id", adminOnly, async (req, res) => {
   if (reference !== undefined)         updates.reference = reference;
   if (emergency_contact !== undefined) updates.emergency_contact = emergency_contact;
   if (nid_number !== undefined)        updates.nid_number = nid_number;
+  if (outlet_id !== undefined)         updates.outlet_id = outlet_id || null;
 
   if (!Object.keys(updates).length) return res.status(400).json({ error: "কিছু পরিবর্তন করুন।" });
 
