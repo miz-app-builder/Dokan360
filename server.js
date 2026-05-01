@@ -124,6 +124,15 @@ app.get("/settings/public", async (req, res) => {
 });
 
 /* =========================
+   STATIC FILES (Production)
+   auth এর আগে — যাতে HTML/CSS/JS block না হয়
+========================= */
+const clientDist = path.join(__dirname, "client", "dist");
+if (existsSync(clientDist)) {
+  app.use(express.static(clientDist));
+}
+
+/* =========================
    🔐 PROTECTED ROUTES START (Phase 5.4)
    সব route এর নিচে authMiddleware apply হবে
 ========================= */
@@ -1287,11 +1296,9 @@ app.delete("/notices/:id", authMiddleware, async (req, res) => {
 });
 
 /* =========================
-   STATIC FILES (Production)
+   CATCH-ALL — React Router fallback
 ========================= */
-const clientDist = path.join(__dirname, "client", "dist");
 if (existsSync(clientDist)) {
-  app.use(express.static(clientDist));
   app.get(/.*/, (req, res) => {
     res.sendFile(path.join(clientDist, "index.html"));
   });

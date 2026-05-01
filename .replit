@@ -15,33 +15,17 @@ author = "agent"
 task = "workflow.run"
 args = "Start application"
 
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Backend API"
-
 [[workflows.workflow]]
 name = "Start application"
 author = "agent"
 
-[workflows.workflow.metadata]
-outputType = "webview"
-
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd client && npm run dev"
+args = "bash start.sh"
 waitForPort = 5000
 
-[[workflows.workflow]]
-name = "Backend API"
-author = "agent"
-
 [workflows.workflow.metadata]
-outputType = "console"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "node server.js"
-waitForPort = 3000
+outputType = "webview"
 
 [[ports]]
 localPort = 3000
