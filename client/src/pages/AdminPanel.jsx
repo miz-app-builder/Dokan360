@@ -520,11 +520,25 @@ function UserProfile({ user, isNew, currentUser, onSaved, onBack, showMsg, outle
 
   return (
     <form onSubmit={handleSave}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 10 }}>
         <h3 style={{ margin: 0, color: "#1e1b4b" }}>{title}</h3>
-        <button type="button" onClick={onBack} style={{ ...btnStyle("#f3f4f6", "#374151"), padding: "8px 16px" }}>
-          ← ফিরে যান
-        </button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button type="button" onClick={onBack} style={{ ...btnStyle("#f3f4f6", "#374151"), padding: "8px 16px" }}>
+            ← ফিরে যান
+          </button>
+          <button
+            type="submit"
+            disabled={saving}
+            style={{
+              ...btnStyle(saving ? "#d1d5db" : "#4f46e5", "#fff"),
+              padding: "8px 18px",
+              fontWeight: "bold",
+              cursor: saving ? "not-allowed" : "pointer",
+            }}
+          >
+            {saving ? "সেভ হচ্ছে..." : isNew ? "✅ তৈরি করুন" : "💾 সেভ করুন"}
+          </button>
+        </div>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "200px 1fr", gap: 24, alignItems: "start" }}>
